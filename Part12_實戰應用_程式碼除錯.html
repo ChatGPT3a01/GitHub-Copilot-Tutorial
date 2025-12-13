@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 12 - 實戰應用：程式碼除錯</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .nav-buttons { display: flex; gap: 12px; }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-arrow:hover {
+            background: rgba(255,255,255,0.5);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .prev-arrow { left: 30px; }
+        .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            padding-top: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide {
+            position: absolute;
+            top: 60px; left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 20;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 45px 55px;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 88vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        h1 {
+            color: #1e3c72;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #2a5298;
+            font-size: 34px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #1e3c72;
+            padding-bottom: 12px;
+        }
+        h3 {
+            color: #1e3c72;
+            font-size: 22px;
+            margin: 20px 0 12px 0;
+        }
+        h4 {
+            color: #4facfe;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p, li {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin: 12px 0;
+        }
+
+        code {
+            background: #f0f2f5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d63384;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+
+        .box {
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin: 18px 0;
+            border-left: 6px solid;
+            font-size: 17px;
+        }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .tip { background: #f3e5f5; border-color: #9c27b0; color: #6a1b9a; }
+        .danger { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 20px;
+        }
+        .concept-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 22px;
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+        .concept-card h3 {
+            margin-top: 0;
+            color: #1e3c72;
+        }
+
+        .screenshot {
+            width: 100%;
+            max-width: 850px;
+            margin: 15px auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 3px solid #e9ecef;
+        }
+
+        .screenshot-small {
+            max-width: 650px;
+        }
+
+        .screenshot-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .screenshot-caption {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .method-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+
+        .method-card h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .method-card code {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 18px;
+            padding: 8px 15px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        /* 錯誤類型卡片 */
+        .error-card {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin: 10px 0;
+        }
+
+        .error-card h4 {
+            color: white;
+            text-align: left;
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .error-card p {
+            color: rgba(255,255,255,0.9);
+            margin: 0;
+            font-size: 16px;
+        }
+
+        /* 除錯流程 */
+        .debug-flow {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .debug-step {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .debug-arrow {
+            font-size: 24px;
+            color: #1e3c72;
+        }
+
+        .quiz-container {
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #1e3c72;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .quiz-btn {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(30,60,114,0.3);
+        }
+        .quiz-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .quiz-option {
+            background: #f8f9fa;
+            padding: 12px 18px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+        .indicators {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 4000;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dot:hover {
+            background: rgba(255,255,255,0.7);
+        }
+        .dot.active {
+            background: #4facfe;
+            transform: scale(1.3);
+        }
+
+        .slide.locked .content-card {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .unlock-overlay-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .slide.locked .unlock-overlay-container {
+            display: flex;
+        }
+
+        .unlock-btn {
+            background: rgba(30, 60, 114, 0.95);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 40px;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+            pointer-events: auto;
+        }
+        .unlock-btn:hover {
+            transform: scale(1.1);
+            background: #2a5298;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            outline: none;
+        }
+        .modal-input:focus { border-color: #1e3c72; }
+
+        .modal-btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .tag-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+
+        .tag {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: #004d40;
+            font-size: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 900px) {
+            .concept-grid {
+                grid-template-columns: 1fr;
+            }
+            .debug-flow {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導航列 -->
+    <div class="nav-bar">
+        <div class="nav-title">Part 12 - 實戰應用：程式碼除錯</div>
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-btn">🏠 課程首頁</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">🖥️ 全螢幕</button>
+            <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="nav-btn">📘 FB</a>
+            <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="nav-btn">🎥 YT</a>
+        </div>
+    </div>
+
+    <!-- 投影片內容 -->
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h4>GitHub Copilot 完整教學</h4>
+                <h1>Part 12：實戰應用 - 程式碼除錯</h1>
+                <h2 style="border: none; font-weight: normal; font-size: 24px; color: #666; max-width: 800px;">
+                    用 Copilot 快速找出並修復 Bug
+                </h2>
+                <div class="tag-container">
+                    <span class="tag">錯誤分析</span>
+                    <span class="tag">/fix 修復</span>
+                    <span class="tag">/explain 理解</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 學習目標 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 本單元學習目標</h2>
+                <p>完成這個單元後，你將能夠：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 分析錯誤訊息</h3>
+                        <p>讓 Copilot 解釋 Traceback 錯誤</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 使用 /fix 修復</h3>
+                        <p>快速修正有問題的程式碼</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 使用 /explain 理解</h3>
+                        <p>先理解程式碼邏輯再除錯</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 驗證修復結果</h3>
+                        <p>確認修正後程式正常執行</p>
+                    </div>
+                </div>
+
+                <div class="box tip">
+                    <strong>核心觀念：</strong>除錯 = 找出問題 + 理解原因 + 修正程式碼 + 驗證結果
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 除錯基本概念 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🐛 除錯的基本概念</h2>
+
+                <div class="debug-flow">
+                    <div class="debug-step">1. 發現錯誤</div>
+                    <span class="debug-arrow">→</span>
+                    <div class="debug-step">2. 理解原因</div>
+                    <span class="debug-arrow">→</span>
+                    <div class="debug-step">3. 修正程式</div>
+                    <span class="debug-arrow">→</span>
+                    <div class="debug-step">4. 驗證結果</div>
+                </div>
+
+                <div class="box info">
+                    <strong>傳統除錯的痛點：</strong>
+                    <ul style="margin-bottom: 0;">
+                        <li>看不懂錯誤訊息</li>
+                        <li>不知道錯誤發生在哪裡</li>
+                        <li>不確定怎麼修正</li>
+                        <li>修了又產生新的錯誤</li>
+                    </ul>
+                </div>
+
+                <div class="box success">
+                    <strong>Copilot 可以幫你：</strong>解釋錯誤訊息、定位問題位置、提供修正建議！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Copilot 如何幫助除錯 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🤖 Copilot 如何幫助除錯？</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>💬 貼上錯誤訊息</h3>
+                        <p>直接把 Traceback 貼到 Chat<br>Copilot 會解釋錯誤原因</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>🔧 /fix 指令</h3>
+                        <p>選取有問題的程式碼<br>Copilot 自動修正</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>📖 /explain 指令</h3>
+                        <p>先理解程式碼在做什麼<br>再找出問題所在</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>💡 對話詢問</h3>
+                        <p>用自然語言描述問題<br>Copilot 給出解決方案</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 方法一 - 貼上錯誤訊息 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💬 方法一：貼上錯誤訊息詢問</h2>
+
+                <div class="method-card">
+                    <h3>操作步驟</h3>
+                    <ol style="color: white; margin: 10px 0;">
+                        <li>執行程式，產生錯誤</li>
+                        <li>複製終端機的 Traceback 錯誤訊息</li>
+                        <li>開啟 Copilot Chat（<code>Ctrl + Alt + I</code>）</li>
+                        <li>貼上錯誤訊息並詢問</li>
+                    </ol>
+                    <code style="display: block; margin-top: 15px;">這個錯誤是什麼意思？要怎麼修復？</code>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part12/12-1.png" alt="貼上錯誤訊息" class="screenshot">
+                    <p class="screenshot-caption">將錯誤訊息貼到 Chat 並詢問</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: Copilot 分析錯誤 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📋 Copilot 分析錯誤結果</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part12/12-2.png" alt="Copilot 分析錯誤" class="screenshot">
+                    <p class="screenshot-caption">Copilot 解釋錯誤原因並提供修復建議</p>
+                </div>
+
+                <div class="box success">
+                    <strong>Copilot 會告訴你：</strong>
+                    <ul style="margin-bottom: 0;">
+                        <li>錯誤類型（如 NameError、TypeError）</li>
+                        <li>錯誤發生的原因</li>
+                        <li>修復建議或修正後的程式碼</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 方法二 - /fix 指令 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🔧 方法二：使用 /fix 修復錯誤</h2>
+
+                <div class="method-card">
+                    <h3>操作步驟</h3>
+                    <ol style="color: white; margin: 10px 0;">
+                        <li>在編輯器中選取有問題的程式碼</li>
+                        <li>在 Chat 中輸入 <code>/fix</code></li>
+                        <li>按 Enter 送出</li>
+                    </ol>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part12/12-3.png" alt="使用 /fix" class="screenshot">
+                    <p class="screenshot-caption">使用 /fix 指令修復錯誤</p>
+                </div>
+
+                <div class="box warning">
+                    <strong>小提醒：</strong>如果遇到「Requested model not available」錯誤，請開一個<strong>新的 Chat Session</strong>（點擊 ➕ New Chat），重新選取程式碼再試一次。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 方法三 - /explain 指令 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📖 方法三：使用 /explain 理解程式碼</h2>
+
+                <div class="method-card">
+                    <h3>先理解，再除錯</h3>
+                    <p style="color: white;">當你不確定程式碼在做什麼時，先用 /explain 理解邏輯：</p>
+                    <ol style="color: white; margin: 10px 0;">
+                        <li>選取要理解的程式碼</li>
+                        <li>在 Chat 中輸入 <code>/explain</code></li>
+                        <li>Copilot 會逐步說明程式碼邏輯</li>
+                    </ol>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part12/12-4.png" alt="使用 /explain" class="screenshot">
+                    <p class="screenshot-caption">使用 /explain 理解程式碼邏輯</p>
+                </div>
+
+                <div class="box tip">
+                    <strong>除錯心法：</strong>「先理解程式碼在做什麼，才能找出問題在哪裡」
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 常見錯誤類型 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📚 Python 常見錯誤類型</h2>
+
+                <table>
+                    <tr>
+                        <th>錯誤類型</th>
+                        <th>說明</th>
+                        <th>常見原因</th>
+                    </tr>
+                    <tr>
+                        <td><code>SyntaxError</code></td>
+                        <td>語法錯誤</td>
+                        <td>缺少冒號、括號不成對、縮排錯誤</td>
+                    </tr>
+                    <tr>
+                        <td><code>NameError</code></td>
+                        <td>名稱錯誤</td>
+                        <td>變數未定義、拼錯變數名</td>
+                    </tr>
+                    <tr>
+                        <td><code>TypeError</code></td>
+                        <td>型別錯誤</td>
+                        <td>不同型別做運算、函式參數錯誤</td>
+                    </tr>
+                    <tr>
+                        <td><code>IndexError</code></td>
+                        <td>索引錯誤</td>
+                        <td>存取超出列表範圍的索引</td>
+                    </tr>
+                    <tr>
+                        <td><code>KeyError</code></td>
+                        <td>鍵值錯誤</td>
+                        <td>字典中不存在的鍵</td>
+                    </tr>
+                </table>
+
+                <div class="box info">
+                    <strong>小技巧：</strong>看到錯誤類型後，可以直接問 Copilot「什麼是 XXXError？」
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 實際除錯範例 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🔍 實際除錯範例</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part12/12-5.png" alt="實際除錯範例" class="screenshot">
+                    <p class="screenshot-caption">完整的除錯流程示範</p>
+                </div>
+
+                <div class="box success">
+                    <strong>除錯流程：</strong>
+                    <ol style="margin-bottom: 0;">
+                        <li>發現錯誤（執行程式出現 Traceback）</li>
+                        <li>詢問 Copilot（貼上錯誤或使用 /fix）</li>
+                        <li>理解原因（Copilot 解釋問題）</li>
+                        <li>套用修正（使用建議的修正）</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 修復後驗證 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>✅ 修復後驗證</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part12/12-6.png" alt="修復後驗證" class="screenshot">
+                    <p class="screenshot-caption">修復後執行程式，確認沒有錯誤</p>
+                </div>
+
+                <div class="box success">
+                    <strong>驗證重點：</strong>
+                    <ul style="margin-bottom: 0;">
+                        <li>程式正常執行，沒有 Traceback</li>
+                        <li>輸出結果符合預期</li>
+                        <li>沒有產生新的錯誤</li>
+                    </ul>
+                </div>
+
+                <div class="box warning">
+                    <strong>注意：</strong>修復一個錯誤後，可能會暴露出其他隱藏的錯誤，要多次測試確認！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 除錯技巧與心法 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💡 除錯技巧與心法</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 閱讀錯誤訊息</h3>
+                        <p>錯誤訊息通常會告訴你：<br>錯誤類型、發生位置、原因</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 縮小範圍</h3>
+                        <p>先確定問題在哪一行<br>再逐步縮小可能原因</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 善用 Copilot</h3>
+                        <p>/fix 快速修復<br>/explain 理解邏輯<br>對話詢問疑問</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 記錄經驗</h3>
+                        <p>遇到的錯誤和解法<br>下次更快找到答案</p>
+                    </div>
+                </div>
+
+                <div class="box tip">
+                    <strong>黃金法則：</strong>「遇到錯誤不要慌，先看訊息再問 Copilot」
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 實作練習 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🏋️ 實作練習</h2>
+
+                <div class="box info">
+                    <strong>練習目標：</strong>使用 Copilot 的各種除錯功能修復 Bug
+                </div>
+
+                <h3>練習步驟</h3>
+                <ol>
+                    <li>建立 <code>debug_practice.py</code></li>
+                    <li>故意寫一些有錯誤的程式碼：
+                        <ul>
+                            <li>變數未定義（NameError）</li>
+                            <li>字串和數字相加（TypeError）</li>
+                            <li>存取不存在的列表索引（IndexError）</li>
+                        </ul>
+                    </li>
+                    <li>執行程式，複製錯誤訊息</li>
+                    <li>使用 Copilot Chat 詢問錯誤原因</li>
+                    <li>使用 /fix 修復錯誤</li>
+                    <li>驗證修復結果</li>
+                </ol>
+
+                <div class="box tip">
+                    <strong>進階挑戰：</strong>嘗試用 /explain 理解一段複雜的程式碼，找出潛在的邏輯錯誤
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: 隨堂測驗 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 隨堂測驗</h2>
+
+                <div class="quiz-container">
+                    <h3>問題 1：遇到程式錯誤時，Copilot Chat 最快的處理方式是？</h3>
+                    <div class="quiz-option">A. 自己上網搜尋</div>
+                    <div class="quiz-option">B. 把錯誤訊息貼到 Chat 並詢問</div>
+                    <div class="quiz-option">C. 重新安裝 VS Code</div>
+                    <div class="quiz-option">D. 把程式碼全部刪除重寫</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 2：在 Copilot Chat 中，哪個指令可以直接修復選取的程式碼？</h3>
+                    <div class="quiz-option">A. /debug</div>
+                    <div class="quiz-option">B. /repair</div>
+                    <div class="quiz-option">C. /fix</div>
+                    <div class="quiz-option">D. /solve</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 3：/explain 指令的主要用途是？</h3>
+                    <div class="quiz-option">A. 執行程式碼</div>
+                    <div class="quiz-option">B. 刪除程式碼</div>
+                    <div class="quiz-option">C. 理解程式碼的邏輯和功能</div>
+                    <div class="quiz-option">D. 壓縮程式碼</div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="quiz-btn" onclick="openPasswordModal(14)">🔑 查看解答</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: 測驗解答 -->
+        <div class="slide locked" id="slide-14">
+            <div class="content-card">
+                <h2>✅ 測驗解答</h2>
+
+                <div class="box success">
+                    <h3>問題 1 答案：B</h3>
+                    <p>把錯誤訊息貼到 Copilot Chat 並詢問，是最快的處理方式。Copilot 會解釋錯誤原因並提供修復建議，比自己搜尋更快更準確。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 2 答案：C</h3>
+                    <p><code>/fix</code> 是 Copilot Chat 用來修復程式碼的指令。選取有問題的程式碼後輸入 /fix，Copilot 會分析並提供修正建議。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 3 答案：C</h3>
+                    <p><code>/explain</code> 的用途是「理解程式碼的邏輯和功能」。當你不確定某段程式碼在做什麼時，可以用這個指令讓 Copilot 逐步解釋。</p>
+                </div>
+            </div>
+            <div class="unlock-overlay-container">
+                <button class="unlock-btn" onclick="openPasswordModal(14)">🔓 點擊解鎖解答</button>
+            </div>
+        </div>
+
+        <!-- Slide 16: 重點回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎉 Part 12 重點回顧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>除錯流程</h3>
+                        <p>發現錯誤 → 理解原因<br>→ 修正程式 → 驗證結果</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>三種除錯方式</h3>
+                        <p>1. 貼上錯誤訊息詢問<br>2. /fix 快速修復<br>3. /explain 先理解</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>常見錯誤類型</h3>
+                        <p>SyntaxError、NameError<br>TypeError、IndexError</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>除錯心法</h3>
+                        <p>不要慌、看訊息<br>問 Copilot、驗證結果</p>
+                    </div>
+                </div>
+
+                <div class="box tip" style="margin-top: 25px; text-align: center;">
+                    <h3>核心觀念</h3>
+                    <p style="font-size: 20px; margin-bottom: 0;">
+                        「錯誤是學習的機會，Copilot 是你的除錯夥伴」
+                    </p>
+                </div>
+
+                <div class="box info" style="margin-top: 15px; text-align: center;">
+                    <h3>下一單元預告</h3>
+                    <p style="font-size: 18px; margin-bottom: 0;">
+                        <strong>Part 13：實戰應用 - 程式碼文件</strong><br>
+                        用 Copilot 自動產生程式碼註解和文件！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 導航箭頭 -->
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">❮</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">❯</button>
+
+    <!-- 頁碼指示器 -->
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <!-- 密碼彈窗 -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-box">
+            <h2 style="color: #1e3c72; margin-bottom: 10px;">🔒 解鎖解答</h2>
+            <p style="color: #666;">請輸入密碼以查看答案</p>
+            <input type="password" class="modal-input" id="passwordInput" placeholder="請輸入密碼" autocomplete="off">
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="modal-btn" onclick="verifyPassword()">確認</button>
+                <button class="modal-btn" style="background: #999;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let unlockedSlides = new Set();
+        let pendingUnlockIndex = -1;
+        const CORRECT_PASSWORD = "0207";
+
+        function init() {
+            createIndicators();
+            showSlide(0);
+            updateButtons();
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'Enter' && document.getElementById('passwordModal').style.display === 'flex') {
+                verifyPassword();
+            }
+        }
+
+        function createIndicators() {
+            const container = document.getElementById('indicatorContainer');
+            container.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => goToSlide(index);
+                container.appendChild(dot);
+            });
+        }
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            if (slides[index].classList.contains('locked') && !unlockedSlides.has(index)) {
+                // 保持 locked 狀態
+            } else {
+                slides[index].classList.remove('locked');
+            }
+
+            currentSlide = index;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === index);
+            });
+
+            updateButtons();
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function openPasswordModal(targetIndex) {
+            pendingUnlockIndex = targetIndex;
+            const modal = document.getElementById('passwordModal');
+            const input = document.getElementById('passwordInput');
+            modal.style.display = 'flex';
+            input.value = '';
+            input.focus();
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            if (input.value === CORRECT_PASSWORD) {
+                unlockedSlides.add(pendingUnlockIndex);
+
+                if (currentSlide === pendingUnlockIndex) {
+                    slides[currentSlide].classList.remove('locked');
+                } else {
+                    showSlide(pendingUnlockIndex);
+                }
+
+                closeModal();
+            } else {
+                alert("❌ 密碼錯誤！");
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

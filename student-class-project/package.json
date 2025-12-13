@@ -1,0 +1,16 @@
+{
+  "name": "student-class-project",
+  "version": "1.0.0",
+  "description": "A project to demonstrate a Student class with name and score attributes.",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^4.0.0"
+  },
+  "author": "",
+  "license": "ISC"
+}

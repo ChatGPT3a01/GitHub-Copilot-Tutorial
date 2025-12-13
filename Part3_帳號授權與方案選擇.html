@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 3 - 帳號授權與方案選擇</title>
+    <style>
+        /* 基礎設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* === 導航列 === */
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .nav-buttons { display: flex; gap: 12px; }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* === 導航箭頭 === */
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-arrow:hover {
+            background: rgba(255,255,255,0.5);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .prev-arrow { left: 30px; }
+        .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* === 投影片容器 === */
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            padding-top: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide {
+            position: absolute;
+            top: 60px; left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 20;
+        }
+
+        /* === 內容卡片 === */
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 45px 55px;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 88vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* === 標題樣式 === */
+        h1 {
+            color: #1e3c72;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #2a5298;
+            font-size: 34px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #1e3c72;
+            padding-bottom: 12px;
+        }
+        h3 {
+            color: #1e3c72;
+            font-size: 22px;
+            margin: 20px 0 12px 0;
+        }
+        h4 {
+            color: #4facfe;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p, li {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin: 12px 0;
+        }
+
+        /* === 程式碼區塊 === */
+        code {
+            background: #f0f2f5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d63384;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        /* === 提示框 === */
+        .box {
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin: 18px 0;
+            border-left: 6px solid;
+            font-size: 17px;
+        }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .tip { background: #f3e5f5; border-color: #9c27b0; color: #6a1b9a; }
+        .danger { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        .highlight {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #004d40;
+        }
+
+        /* === 概念卡片網格 === */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 20px;
+        }
+        .concept-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 22px;
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+        .concept-card h3 {
+            margin-top: 0;
+            color: #1e3c72;
+        }
+
+        /* === 方案卡片 === */
+        .plan-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 25px 0;
+        }
+        .plan-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        .plan-card.featured {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        }
+        .plan-card h3 {
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+        .plan-price {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1e3c72;
+            margin: 15px 0;
+        }
+        .plan-price span {
+            font-size: 16px;
+            color: #666;
+        }
+
+        /* === 表格樣式 === */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 17px;
+        }
+        th, td {
+            padding: 12px 18px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        /* === 截圖圖片樣式 === */
+        .screenshot {
+            width: 100%;
+            max-width: 850px;
+            margin: 15px auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 3px solid #e9ecef;
+        }
+
+        .screenshot-small {
+            max-width: 650px;
+        }
+
+        .screenshot-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .screenshot-caption {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* === 步驟樣式 === */
+        .step-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin: 18px 0;
+            padding: 18px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+
+        /* === 快捷鍵樣式 === */
+        .kbd {
+            background: linear-gradient(180deg, #f5f5f5, #e0e0e0);
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 4px 10px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            box-shadow: 0 2px 0 #999;
+            margin: 0 3px;
+        }
+
+        /* === 測驗樣式 === */
+        .quiz-container {
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #1e3c72;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .quiz-btn {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(30,60,114,0.3);
+        }
+        .quiz-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .quiz-option {
+            background: #f8f9fa;
+            padding: 12px 18px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+        /* === 頁碼指示器 === */
+        .indicators {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 4000;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dot:hover {
+            background: rgba(255,255,255,0.7);
+        }
+        .dot.active {
+            background: #4facfe;
+            transform: scale(1.3);
+        }
+
+        /* === 解答鎖定樣式 === */
+        .slide.locked .content-card {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .unlock-overlay-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .slide.locked .unlock-overlay-container {
+            display: flex;
+        }
+
+        .unlock-btn {
+            background: rgba(30, 60, 114, 0.95);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 40px;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+            pointer-events: auto;
+        }
+        .unlock-btn:hover {
+            transform: scale(1.1);
+            background: #2a5298;
+        }
+
+        /* === 密碼彈窗 === */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            outline: none;
+        }
+        .modal-input:focus { border-color: #1e3c72; }
+
+        .modal-btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        /* === 特色標籤 === */
+        .tag-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+
+        .tag {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: #004d40;
+            font-size: 15px;
+        }
+
+        /* === 免費標籤 === */
+        .free-badge {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 900px) {
+            .plan-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導航列 -->
+    <div class="nav-bar">
+        <div class="nav-title">Part 3 - 帳號授權與方案選擇</div>
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-btn">🏠 課程首頁</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">🖥️ 全螢幕</button>
+            <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="nav-btn">📘 FB</a>
+            <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="nav-btn">🎥 YT</a>
+        </div>
+    </div>
+
+    <!-- 投影片內容 -->
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h4>GitHub Copilot 完整教學</h4>
+                <h1>Part 3：帳號授權與方案選擇</h1>
+                <h2 style="border: none; font-weight: normal; font-size: 24px; color: #666; max-width: 800px;">
+                    Free、Pro、Pro+ 完整解析，學生教師免費申請攻略
+                </h2>
+                <div class="tag-container">
+                    <span class="tag">GitHub 帳號</span>
+                    <span class="tag">方案比較</span>
+                    <span class="tag">學生免費</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 學習目標 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 本單元學習目標</h2>
+                <p>完成這個單元後，你將能夠：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 了解方案差異</h3>
+                        <p>比較 Free、Pro、Pro+ 各方案的功能與限制</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 學生免費申請</h3>
+                        <p>完整掌握 GitHub Education 學生/教師方案申請流程</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 帳號管理</h3>
+                        <p>學會查看使用狀態、切換帳號</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 常見問題</h3>
+                        <p>解決授權相關的常見問題與誤解</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 方案總覽 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💳 Copilot 方案總覽（2024 最新）</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-1.png" alt="Copilot 定價頁面" class="screenshot">
+                    <p class="screenshot-caption">GitHub Copilot 官方定價頁面</p>
+                </div>
+
+                <div class="box info">
+                    <strong>方案分類：</strong><br>
+                    • <strong>個人方案</strong>：<span class="highlight">Free</span>、<span class="highlight">Pro</span>、<span class="highlight">Pro+</span> 三種<br>
+                    • <strong>企業方案</strong>：<span class="highlight">Business</span>、<span class="highlight">Enterprise</span> 兩種
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: 三種方案比較 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📊 個人方案詳細比較（3 種）</h2>
+
+                <div class="plan-grid">
+                    <div class="plan-card">
+                        <h3>🆓 Free</h3>
+                        <div class="plan-price">免費</div>
+                        <ul style="text-align: left; font-size: 16px;">
+                            <li>程式碼補全：<strong>每月 2,000 次</strong></li>
+                            <li>Chat 對話：<strong>每月 50 次</strong></li>
+                            <li>基本功能</li>
+                            <li>適合輕度使用</li>
+                        </ul>
+                    </div>
+                    <div class="plan-card">
+                        <h3>⭐ Pro</h3>
+                        <div class="plan-price">$10<span>/月</span></div>
+                        <ul style="text-align: left; font-size: 16px;">
+                            <li>程式碼補全：<strong>無限制</strong></li>
+                            <li>Chat 對話：<strong>無限制</strong></li>
+                            <li>進階功能</li>
+                            <li>優先支援</li>
+                        </ul>
+                    </div>
+                    <div class="plan-card featured">
+                        <h3>🚀 Pro+</h3>
+                        <div class="plan-price">$39<span>/月</span></div>
+                        <ul style="text-align: left; font-size: 16px;">
+                            <li>包含 Pro 所有功能</li>
+                            <li>更多 AI 模型選擇</li>
+                            <li>更高的使用配額</li>
+                            <li>企業級功能</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 查看方案狀態 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🔍 在 VS Code 查看方案狀態</h2>
+                <p>如何知道自己目前使用的是哪個方案？</p>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>開啟命令面板</h3>
+                        <p><span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">P</span></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>搜尋 Copilot 設定</h3>
+                        <p>輸入「<code>Copilot</code>」並選擇「GitHub Copilot：設定」</p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-2.png" alt="Copilot 狀態" class="screenshot">
+                    <p class="screenshot-caption">VS Code 中的 Copilot 狀態與設定</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: 學生教師免費方案 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎓 學生/教師免費方案 <span class="free-badge">超划算！</span></h2>
+
+                <div class="box success" style="font-size: 20px;">
+                    <strong>好消息！</strong>學生和教師可以透過 GitHub Education <strong>免費</strong>使用 Copilot Pro 功能！
+                </div>
+
+                <h3>申請資格</h3>
+                <ul>
+                    <li>擁有學校 Email（如 <code>xxx@xxx.edu.tw</code>）</li>
+                    <li>或能提供在學證明 / 教師證明文件</li>
+                    <li>年滿 13 歲以上</li>
+                </ul>
+
+                <h3>免費價值</h3>
+                <ul>
+                    <li>每月省 <strong>$10 美金</strong></li>
+                    <li>一年省 <strong>$120 美金</strong>（約 NT$3,600）</li>
+                    <li>功能完全等同 Pro 版！</li>
+                </ul>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-3.png" alt="GitHub Education" class="screenshot" style="max-width: 700px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 申請步驟 1 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 學生方案申請步驟（1/4）</h2>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>前往 GitHub Education</h3>
+                        <p>開啟瀏覽器，前往：<code>https://github.com/education</code></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>點擊申請按鈕</h3>
+                        <p>找到「<strong>Join Global Campus</strong>」或「<strong>Get benefits</strong>」按鈕</p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-4.png" alt="申請入口" class="screenshot screenshot-small">
+                    <p class="screenshot-caption">GitHub Education 申請入口</p>
+                </div>
+
+                <div class="box tip">
+                    <strong>小提示：</strong>建議使用手機申請，因為可能需要拍照上傳證明文件！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 申請步驟 2 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 學生方案申請步驟（2/4）</h2>
+
+                <div class="step-container">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>選擇身份並填寫資料</h3>
+                        <ul>
+                            <li>選擇「<strong>Student</strong>」（學生）或「<strong>Teacher</strong>」（教師）</li>
+                            <li>輸入學校名稱（系統會自動搜尋）</li>
+                            <li>填寫學校 Email</li>
+                            <li>說明你打算如何使用 GitHub</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-5.png" alt="申請表單" class="screenshot">
+                    <p class="screenshot-caption">學生申請表單填寫畫面</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 申請步驟 3 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 學生方案申請步驟（3/4）</h2>
+
+                <div class="step-container">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>驗證學生/教師身份</h3>
+                        <p>GitHub 提供多種驗證方式（擇一即可）：</p>
+                        <ul>
+                            <li><strong>學校 Email 驗證</strong>：收到驗證信後點擊連結</li>
+                            <li><strong>上傳證明文件</strong>：學生證、在學證明、教師證等</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-6.png" alt="身份驗證" class="screenshot">
+                    <p class="screenshot-caption">身份驗證方式選擇</p>
+                </div>
+
+                <div class="box warning">
+                    <strong>注意！</strong>如果在校園外申請，可能需要上傳證明文件。建議用手機拍照，畫質較佳。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 申請步驟 4 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 學生方案申請步驟（4/4）</h2>
+
+                <div class="step-container">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>等待審核</h3>
+                        <ul>
+                            <li>審核時間通常 <strong>1-7 個工作天</strong>（有時更長）</li>
+                            <li>審核結果會發送到你的 <strong>學校 Email</strong></li>
+                            <li>可能會被要求補充文件</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">✓</div>
+                    <div class="step-content">
+                        <h3>審核通過！</h3>
+                        <p>通過後會收到 Email 通知，Copilot Pro 權限自動啟用！</p>
+                    </div>
+                </div>
+
+                <div class="box success">
+                    <strong>恭喜！</strong>審核通過後，你的 GitHub 帳號會自動獲得 Copilot Pro 權限，回到 VS Code 重新登入即可使用！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 在 GitHub 查看狀態 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🌐 在 GitHub 網站查看方案狀態</h2>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>登入 GitHub</h3>
+                        <p>前往 <code>https://github.com</code> 並登入帳號</p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>進入設定</h3>
+                        <p>點擊右上角頭像 → <strong>Settings</strong></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>找到 Copilot</h3>
+                        <p>左側選單找到「<strong>Copilot</strong>」，查看目前方案狀態</p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-7.png" alt="GitHub Settings Copilot" class="screenshot">
+                    <p class="screenshot-caption">GitHub Settings 中的 Copilot 設定頁面</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: VS Code 帳號管理 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🔄 VS Code 帳號管理（登入/登出）</h2>
+                <p>如果需要切換 GitHub 帳號（例如：從個人帳號切到學校帳號）：</p>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>開啟命令面板</h3>
+                        <p><span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">P</span></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>搜尋 Copilot 指令</h3>
+                        <p>輸入「<code>Copilot</code>」會看到登入/登出相關指令</p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-8.png" alt="帳號管理" class="screenshot">
+                    <p class="screenshot-caption">命令面板中的 Copilot 帳號管理指令</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 帳號管理指令 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⌨️ Copilot 帳號管理常用指令</h2>
+
+                <table>
+                    <tr>
+                        <th>指令</th>
+                        <th>功能說明</th>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot：登入</code></td>
+                        <td>登入 GitHub 帳號以使用 Copilot</td>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot：登出</code></td>
+                        <td>登出目前的 GitHub 帳號</td>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot：設定</code></td>
+                        <td>開啟 Copilot 設定頁面</td>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot：啟用</code></td>
+                        <td>開啟自動補全功能</td>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot：停用</code></td>
+                        <td>暫時關閉自動補全功能</td>
+                    </tr>
+                </table>
+
+                <div class="box tip">
+                    <strong>切換帳號步驟：</strong>先執行「登出」，再執行「登入」選擇正確的帳號！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: 企業方案簡介 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🏢 企業方案簡介（2 種）</h2>
+                <p>如果你是企業或學校 IT 管理者，可能會需要了解企業方案：</p>
+
+                <div class="screenshot-container">
+                    <img src="images/part3/3-9.png" alt="Business 方案" class="screenshot">
+                    <p class="screenshot-caption">企業方案功能說明</p>
+                </div>
+
+                <table>
+                    <tr>
+                        <th>方案</th>
+                        <th>價格</th>
+                        <th>適用對象</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Business</strong></td>
+                        <td>$19/人/月</td>
+                        <td>中小型企業團隊</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Enterprise</strong></td>
+                        <td>$39/人/月</td>
+                        <td>大型企業、需要進階管控</td>
+                    </tr>
+                </table>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>組織管理</h3>
+                        <p>集中管理團隊成員的 Copilot 授權</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>安全性控制</h3>
+                        <p>設定哪些程式碼可以/不可以送給 Copilot</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>稽核日誌</h3>
+                        <p>追蹤使用情況，符合企業合規需求</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: 常見問題 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>❓ 常見問題 Q&A</h2>
+
+                <table>
+                    <tr>
+                        <th style="width: 40%;">問題</th>
+                        <th>解答</th>
+                    </tr>
+                    <tr>
+                        <td>學校沒有 .edu 信箱怎麼辦？</td>
+                        <td>可以上傳學生證或在學證明文件</td>
+                    </tr>
+                    <tr>
+                        <td>審核一直沒通過？</td>
+                        <td>確認照片清晰、資料正確，可重新申請</td>
+                    </tr>
+                    <tr>
+                        <td>畢業後還能用嗎？</td>
+                        <td>需要重新驗證，畢業後會失去學生資格</td>
+                    </tr>
+                    <tr>
+                        <td>可以在多台電腦使用嗎？</td>
+                        <td>可以，只要登入同一個 GitHub 帳號</td>
+                    </tr>
+                    <tr>
+                        <td>免費額度用完怎麼辦？</td>
+                        <td>等下個月重置，或升級 Pro 版</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 16: 重要提醒 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⚠️ 重要提醒：帳號無法合併！</h2>
+
+                <div class="box danger">
+                    <strong>常見誤解！</strong>很多人以為可以把「學生方案」從一個帳號轉移到另一個帳號。<br>
+                    <strong>答案是：不行！</strong>
+                </div>
+
+                <h3>GitHub 帳號規則</h3>
+                <ul>
+                    <li>GitHub <strong>不能</strong>把兩個帳號合併（merge）成一個</li>
+                    <li><strong>不能</strong>把教育方案資格轉移到另一個帳號</li>
+                    <li>一個學校 Email 只能綁定<strong>一個</strong> GitHub 帳號</li>
+                </ul>
+
+                <div class="box tip">
+                    <strong>正確做法：</strong>如果你想讓主要帳號獲得學生優惠，請用「主要帳號」重新申請 GitHub Education，填寫學校信箱或上傳證明文件。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: 隨堂測驗 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 隨堂測驗</h2>
+
+                <div class="quiz-container">
+                    <h3>問題 1：GitHub Copilot Free 免費版每月可以使用幾次程式碼補全？</h3>
+                    <div class="quiz-option">A. 100 次</div>
+                    <div class="quiz-option">B. 500 次</div>
+                    <div class="quiz-option">C. 2,000 次</div>
+                    <div class="quiz-option">D. 無限制</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 2：學生要申請免費 Copilot Pro，應該前往哪個網站？</h3>
+                    <div class="quiz-option">A. github.com</div>
+                    <div class="quiz-option">B. copilot.github.com</div>
+                    <div class="quiz-option">C. github.com/education</div>
+                    <div class="quiz-option">D. student.github.com</div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="quiz-btn" onclick="openPasswordModal(17)">🔑 查看解答</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: 測驗解答 -->
+        <div class="slide locked" id="slide-17">
+            <div class="content-card">
+                <h2>✅ 測驗解答</h2>
+
+                <div class="box success">
+                    <h3>問題 1 答案：C</h3>
+                    <p>Free 免費版每月提供 <strong>2,000 次</strong>程式碼補全和 50 次 Chat 對話。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 2 答案：C</h3>
+                    <p>學生需要前往 <strong>github.com/education</strong> 申請 GitHub Education 學生開發者方案。</p>
+                </div>
+            </div>
+            <div class="unlock-overlay-container">
+                <button class="unlock-btn" onclick="openPasswordModal(17)">🔓 點擊解鎖解答</button>
+            </div>
+        </div>
+
+        <!-- Slide 19: 重點回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎉 Part 3 重點回顧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>方案比較</h3>
+                        <p>Free（免費限量）<br>Pro（$10/月）<br>Pro+（$39/月）</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>學生申請</h3>
+                        <p>前往 github.com/education<br>驗證學生/教師身份<br>免費獲得 Pro 功能</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>查看狀態</h3>
+                        <p>GitHub Settings → Copilot<br>或 VS Code 命令面板</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>帳號管理</h3>
+                        <p>命令面板 → 登出<br>→ 重新登入切換帳號</p>
+                    </div>
+                </div>
+
+                <div class="box tip" style="margin-top: 25px; text-align: center;">
+                    <h3>下一單元預告</h3>
+                    <p style="font-size: 20px; margin-bottom: 0;">
+                        <strong>Part 4：第一次使用 - 自動補全基礎</strong><br>
+                        正式開始體驗 Copilot 的強大功能！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: 觀念釐清 - GitHub vs VS Code -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💡 觀念釐清：為什麼要在 GitHub 和 VS Code 之間切換？</h2>
+
+                <p style="font-size: 20px; margin-bottom: 20px;">這是初學者最常問的問題！其實不是亂跳，而是<strong>角色分工</strong>不同：</p>
+
+                <table style="font-size: 18px;">
+                    <tr>
+                        <th style="width: 50%;">🏫 GitHub = 教務處</th>
+                        <th style="width: 50%;">🧪 VS Code = 教室</th>
+                    </tr>
+                    <tr>
+                        <td>管理「你有沒有資格」</td>
+                        <td>讓「你真的用出來」</td>
+                    </tr>
+                    <tr>
+                        <td>帳號是誰？</td>
+                        <td>寫程式</td>
+                    </tr>
+                    <tr>
+                        <td>是 Free / Pro / 學生方案？</td>
+                        <td>看灰色建議</td>
+                    </tr>
+                    <tr>
+                        <td>有沒有 Copilot 使用權？</td>
+                        <td>按 Tab 接受</td>
+                    </tr>
+                    <tr>
+                        <td>額度多少？有沒有到期？</td>
+                        <td>使用 Chat 對話</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #1e3c72; font-weight: bold;">👉 看得到方案，但用不到功能</td>
+                        <td style="color: #28a745; font-weight: bold;">👉 用得到功能，但不負責授權</td>
+                    </tr>
+                </table>
+
+                <div class="box info" style="margin-top: 25px;">
+                    <strong>🔁 使用流程是這樣的：</strong><br>
+                    <strong>1️⃣ GitHub（偶爾）</strong>→ 申請方案、查狀態、確認身分 OK<br>
+                    <strong>2️⃣ VS Code（每天）</strong>→ 寫程式、用 Tab、用 Chat<br>
+                    <strong>3️⃣ 如果怪怪的</strong>→ 回 GitHub 檢查是不是帳號/方案問題
+                </div>
+
+                <div class="box success" style="margin-top: 15px; text-align: center; font-size: 20px;">
+                    <strong>記住這句話：</strong><br>
+                    「GitHub 管資格，VS Code 用功能」<br>
+                    兩邊都要會，才能完整使用 Copilot！
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 導航箭頭 -->
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">❮</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">❯</button>
+
+    <!-- 頁碼指示器 -->
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <!-- 密碼彈窗 -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-box">
+            <h2 style="color: #1e3c72; margin-bottom: 10px;">🔒 解鎖解答</h2>
+            <p style="color: #666;">請輸入密碼以查看答案</p>
+            <input type="password" class="modal-input" id="passwordInput" placeholder="請輸入密碼" autocomplete="off">
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="modal-btn" onclick="verifyPassword()">確認</button>
+                <button class="modal-btn" style="background: #999;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 狀態管理
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let unlockedSlides = new Set();
+        let pendingUnlockIndex = -1;
+        const CORRECT_PASSWORD = "0207";
+
+        function init() {
+            createIndicators();
+            showSlide(0);
+            updateButtons();
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'Enter' && document.getElementById('passwordModal').style.display === 'flex') {
+                verifyPassword();
+            }
+        }
+
+        function createIndicators() {
+            const container = document.getElementById('indicatorContainer');
+            container.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => goToSlide(index);
+                container.appendChild(dot);
+            });
+        }
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            if (slides[index].classList.contains('locked') && !unlockedSlides.has(index)) {
+                // 保持 locked 狀態
+            } else {
+                slides[index].classList.remove('locked');
+            }
+
+            currentSlide = index;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === index);
+            });
+
+            updateButtons();
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // 密碼邏輯
+        function openPasswordModal(targetIndex) {
+            pendingUnlockIndex = targetIndex;
+            const modal = document.getElementById('passwordModal');
+            const input = document.getElementById('passwordInput');
+            modal.style.display = 'flex';
+            input.value = '';
+            input.focus();
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            if (input.value === CORRECT_PASSWORD) {
+                unlockedSlides.add(pendingUnlockIndex);
+
+                if (currentSlide === pendingUnlockIndex) {
+                    slides[currentSlide].classList.remove('locked');
+                } else {
+                    showSlide(pendingUnlockIndex);
+                }
+
+                closeModal();
+            } else {
+                alert("❌ 密碼錯誤！");
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

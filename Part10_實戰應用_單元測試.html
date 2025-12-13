@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 10 - 實戰應用：單元測試</title>
+    <style>
+        /* 基礎設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* === 導航列 === */
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .nav-buttons { display: flex; gap: 12px; }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* === 導航箭頭 === */
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-arrow:hover {
+            background: rgba(255,255,255,0.5);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .prev-arrow { left: 30px; }
+        .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* === 投影片容器 === */
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            padding-top: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide {
+            position: absolute;
+            top: 60px; left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 20;
+        }
+
+        /* === 內容卡片 === */
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 45px 55px;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 88vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* === 標題樣式 === */
+        h1 {
+            color: #1e3c72;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #2a5298;
+            font-size: 34px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #1e3c72;
+            padding-bottom: 12px;
+        }
+        h3 {
+            color: #1e3c72;
+            font-size: 22px;
+            margin: 20px 0 12px 0;
+        }
+        h4 {
+            color: #4facfe;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p, li {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin: 12px 0;
+        }
+
+        /* === 程式碼區塊 === */
+        code {
+            background: #f0f2f5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d63384;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+
+        .code-comment { color: #6a9955; }
+        .code-keyword { color: #569cd6; }
+        .code-function { color: #dcdcaa; }
+        .code-string { color: #ce9178; }
+
+        /* === 提示框 === */
+        .box {
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin: 18px 0;
+            border-left: 6px solid;
+            font-size: 17px;
+        }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .tip { background: #f3e5f5; border-color: #9c27b0; color: #6a1b9a; }
+        .danger { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        .highlight {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #004d40;
+        }
+
+        /* === 概念卡片網格 === */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 20px;
+        }
+        .concept-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 22px;
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+        .concept-card h3 {
+            margin-top: 0;
+            color: #1e3c72;
+        }
+
+        /* === 截圖圖片樣式 === */
+        .screenshot {
+            width: 100%;
+            max-width: 850px;
+            margin: 15px auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 3px solid #e9ecef;
+        }
+
+        .screenshot-small {
+            max-width: 650px;
+        }
+
+        .screenshot-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .screenshot-caption {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* === 方法卡片 === */
+        .method-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+
+        .method-card h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .method-card code {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 18px;
+            padding: 8px 15px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+
+        /* === 測試結果樣式 === */
+        .test-pass {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .test-fail {
+            background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        /* === 測驗樣式 === */
+        .quiz-container {
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #1e3c72;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .quiz-btn {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(30,60,114,0.3);
+        }
+        .quiz-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .quiz-option {
+            background: #f8f9fa;
+            padding: 12px 18px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+        /* === 頁碼指示器 === */
+        .indicators {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 4000;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dot:hover {
+            background: rgba(255,255,255,0.7);
+        }
+        .dot.active {
+            background: #4facfe;
+            transform: scale(1.3);
+        }
+
+        /* === 解答鎖定樣式 === */
+        .slide.locked .content-card {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .unlock-overlay-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .slide.locked .unlock-overlay-container {
+            display: flex;
+        }
+
+        .unlock-btn {
+            background: rgba(30, 60, 114, 0.95);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 40px;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+            pointer-events: auto;
+        }
+        .unlock-btn:hover {
+            transform: scale(1.1);
+            background: #2a5298;
+        }
+
+        /* === 密碼彈窗 === */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            outline: none;
+        }
+        .modal-input:focus { border-color: #1e3c72; }
+
+        .modal-btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        /* === 特色標籤 === */
+        .tag-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+
+        .tag {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: #004d40;
+            font-size: 15px;
+        }
+
+        /* === 比較表格 === */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        @media (max-width: 900px) {
+            .concept-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導航列 -->
+    <div class="nav-bar">
+        <div class="nav-title">Part 10 - 實戰應用：單元測試</div>
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-btn">🏠 課程首頁</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">🖥️ 全螢幕</button>
+            <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="nav-btn">📘 FB</a>
+            <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="nav-btn">🎥 YT</a>
+        </div>
+    </div>
+
+    <!-- 投影片內容 -->
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h4>GitHub Copilot 完整教學</h4>
+                <h1>Part 10：實戰應用 - 單元測試</h1>
+                <h2 style="border: none; font-weight: normal; font-size: 24px; color: #666; max-width: 800px;">
+                    用 Copilot 自動產生測試程式碼
+                </h2>
+                <div class="tag-container">
+                    <span class="tag">/tests 指令</span>
+                    <span class="tag">自動測試</span>
+                    <span class="tag">品質保證</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 學習目標 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 本單元學習目標</h2>
+                <p>完成這個單元後，你將能夠：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 使用 /tests 指令</h3>
+                        <p>在 Chat 中快速產生測試程式碼</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 註解驅動產生測試</h3>
+                        <p>用中文註解讓 Copilot 生成測試</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. Chat 對話產生測試</h3>
+                        <p>與 Copilot 對話產生客製化測試</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 執行與解讀測試結果</h3>
+                        <p>在終端機執行測試並理解結果</p>
+                    </div>
+                </div>
+
+                <div class="box tip">
+                    <strong>核心觀念：</strong>單元測試是確保程式品質的重要工具，Copilot 能大幅減少撰寫測試的時間！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 為什麼需要單元測試 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>❓ 為什麼需要單元測試？</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>🐛 及早發現錯誤</h3>
+                        <p>在開發階段就找出 Bug<br>不用等到上線才發現問題</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>🔄 安全重構</h3>
+                        <p>修改程式碼後跑測試<br>確保沒有破壞原有功能</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>📖 活的文件</h3>
+                        <p>測試案例說明函式該如何使用<br>比註解更可靠</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>💪 信心保證</h3>
+                        <p>測試全部通過<br>更有信心交付程式碼</p>
+                    </div>
+                </div>
+
+                <div class="box warning">
+                    <strong>痛點：</strong>手動撰寫測試很花時間！這就是 Copilot 派上用場的地方。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: 方法一 - /tests 指令 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🧪 方法一：使用 /tests 指令</h2>
+
+                <div class="method-card">
+                    <h3>操作步驟</h3>
+                    <ol style="color: white; margin: 10px 0;">
+                        <li>在編輯器中<strong>選取要測試的函式</strong></li>
+                        <li>開啟 Copilot Chat（<code>Ctrl + Alt + I</code>）</li>
+                        <li>輸入 <code>/tests</code></li>
+                        <li>按 Enter 送出</li>
+                    </ol>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part10/10-1.png" alt="使用 /tests 指令" class="screenshot">
+                    <p class="screenshot-caption">選取函式後，在 Chat 中輸入 /tests</p>
+                </div>
+
+                <div class="box info">
+                    <strong>提示：</strong>確保完整選取函式（從 <code>def</code> 到函式結尾）
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: /tests 產生的結果 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📋 /tests 產生的測試程式碼</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part10/10-2.png" alt="/tests 產生的測試程式碼" class="screenshot">
+                    <p class="screenshot-caption">Copilot 自動產生完整的測試程式碼</p>
+                </div>
+
+                <div class="box success">
+                    <strong>Copilot 會自動產生：</strong>
+                    <ul style="margin-bottom: 0;">
+                        <li>測試類別和測試函式</li>
+                        <li>多種測試案例（正常情況、邊界情況）</li>
+                        <li>必要的 import 語句</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: 方法二 - 註解驅動 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 方法二：註解驅動產生測試</h2>
+
+                <div class="method-card">
+                    <h3>操作步驟</h3>
+                    <ol style="color: white; margin: 10px 0;">
+                        <li>建立測試檔案（如 <code>test_xxx.py</code>）</li>
+                        <li>輸入中文註解描述測試需求</li>
+                        <li>按 Enter 等待灰色建議</li>
+                        <li>按 Tab 接受</li>
+                    </ol>
+                    <code style="display: block; margin-top: 15px;"># 測試 is_prime 函式的單元測試</code>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part10/10-3.png" alt="註解驅動產生測試" class="screenshot">
+                    <p class="screenshot-caption">用中文註解讓 Copilot 產生測試程式碼</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 方法三 - Chat 對話 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💬 方法三：Chat 對話產生測試</h2>
+
+                <div class="method-card">
+                    <h3>操作方式</h3>
+                    <p style="color: white;">在 Copilot Chat 中直接描述你的測試需求：</p>
+                    <code style="display: block; margin-top: 10px;">請為以下函式產生 pytest 單元測試：</code>
+                    <p style="color: white; margin-top: 10px;">或使用檔案參照：</p>
+                    <code style="display: block; margin-top: 10px;">#file:practice9.py 請為這個檔案中的函式產生 pytest 單元測試</code>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part10/10-4.png" alt="Chat 對話產生測試" class="screenshot">
+                    <p class="screenshot-caption">透過對話方式產生客製化測試</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 測試框架介紹 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📚 Python 測試框架比較</h2>
+
+                <table>
+                    <tr>
+                        <th>框架</th>
+                        <th>特點</th>
+                        <th>使用方式</th>
+                    </tr>
+                    <tr>
+                        <td><strong>unittest</strong></td>
+                        <td>Python 內建、不需額外安裝</td>
+                        <td><code>python -m unittest test_file.py</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>pytest</strong></td>
+                        <td>語法簡潔、功能強大、社群推薦</td>
+                        <td><code>python -m pytest test_file.py -v</code></td>
+                    </tr>
+                </table>
+
+                <div class="box tip">
+                    <strong>建議：</strong>初學者可從 <code>unittest</code> 開始，熟悉後再學 <code>pytest</code>。<br>
+                    安裝 pytest：<code>pip install pytest</code>
+                </div>
+
+                <div class="box info">
+                    <strong>Copilot 支援兩種框架：</strong>在提問時指定「pytest」或「unittest」，Copilot 會產生對應的測試程式碼。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 執行測試程式 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>▶️ 執行測試程式</h2>
+
+                <div class="method-card">
+                    <h3>操作步驟</h3>
+                    <ol style="color: white; margin: 10px 0;">
+                        <li>將測試程式碼存成 <code>test_xxx.py</code></li>
+                        <li>開啟終端機（<code>Ctrl + `</code>）</li>
+                        <li>執行測試指令</li>
+                    </ol>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part10/10-5.png" alt="執行測試程式" class="screenshot">
+                    <p class="screenshot-caption">在終端機中執行測試指令</p>
+                </div>
+
+                <div class="box info">
+                    <strong>常用指令：</strong><br>
+                    pytest：<code>python -m pytest test_practice.py -v</code><br>
+                    unittest：<code>python -m unittest test_practice.py</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 測試結果解讀 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📊 測試結果解讀</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part10/10-6.png" alt="測試結果解讀" class="screenshot">
+                    <p class="screenshot-caption">測試執行完成後的結果畫面</p>
+                </div>
+
+                <div class="test-pass">
+                    <h3 style="margin: 0 0 10px 0;">✅ PASSED / OK</h3>
+                    <p style="margin: 0;">測試通過！函式行為符合預期。</p>
+                </div>
+
+                <div class="test-fail">
+                    <h3 style="margin: 0 0 10px 0;">❌ FAILED / ERROR</h3>
+                    <p style="margin: 0;">測試失敗！需要檢查函式邏輯或測試案例。</p>
+                </div>
+
+                <div class="box tip">
+                    <strong>小技巧：</strong>測試失敗不一定是壞事，它幫你找出程式碼中的問題！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 實用技巧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💡 單元測試實用技巧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 測試命名</h3>
+                        <p>使用清楚的命名<br>
+                        <code>test_函式名_測試情境</code><br>
+                        例：<code>test_is_prime_with_negative</code></p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 測試邊界條件</h3>
+                        <p>考慮特殊情況：<br>
+                        - 空值 / None<br>
+                        - 空列表 / 空字串<br>
+                        - 負數 / 零</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 測試異常處理</h3>
+                        <p>確認錯誤輸入時<br>函式會正確處理或拋出異常</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 一次一測試</h3>
+                        <p>每個測試函式只測一件事<br>失敗時更容易找出問題</p>
+                    </div>
+                </div>
+
+                <div class="box warning">
+                    <strong>注意：</strong>Copilot 產生的測試不一定完整，可能需要自己補充邊界條件！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 實作練習 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🏋️ 實作練習</h2>
+
+                <div class="box info">
+                    <strong>練習目標：</strong>使用三種方法為函式產生單元測試
+                </div>
+
+                <h3>練習步驟</h3>
+                <ol>
+                    <li>開啟 Part 9 的 <code>practice9.py</code>（包含多個函式）</li>
+                    <li>選擇一個函式，使用 <code>/tests</code> 產生測試</li>
+                    <li>建立 <code>test_practice.py</code>，用註解產生測試</li>
+                    <li>在 Chat 中對話，產生 pytest 格式的測試</li>
+                    <li>執行測試，確認結果</li>
+                </ol>
+
+                <div class="box tip">
+                    <strong>挑戰：</strong>如果測試失敗，試著找出原因並修正！是函式有 Bug，還是測試案例不正確？
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 隨堂測驗 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 隨堂測驗</h2>
+
+                <div class="quiz-container">
+                    <h3>問題 1：在 Copilot Chat 中，哪個指令可以快速產生測試？</h3>
+                    <div class="quiz-option">A. /test</div>
+                    <div class="quiz-option">B. /tests</div>
+                    <div class="quiz-option">C. /unittest</div>
+                    <div class="quiz-option">D. /pytest</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 2：執行 pytest 測試的指令是？</h3>
+                    <div class="quiz-option">A. pytest test.py</div>
+                    <div class="quiz-option">B. python -m pytest test.py -v</div>
+                    <div class="quiz-option">C. run pytest test.py</div>
+                    <div class="quiz-option">D. A 和 B 都可以</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 3：測試結果顯示 FAILED，表示？</h3>
+                    <div class="quiz-option">A. 測試程式碼有語法錯誤</div>
+                    <div class="quiz-option">B. 函式行為不符合測試預期</div>
+                    <div class="quiz-option">C. pytest 沒有正確安裝</div>
+                    <div class="quiz-option">D. 需要重新啟動 VS Code</div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="quiz-btn" onclick="openPasswordModal(13)">🔑 查看解答</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: 測驗解答 -->
+        <div class="slide locked" id="slide-13">
+            <div class="content-card">
+                <h2>✅ 測驗解答</h2>
+
+                <div class="box success">
+                    <h3>問題 1 答案：B</h3>
+                    <p><code>/tests</code> 是 Copilot Chat 中用來產生單元測試的 Slash 指令。注意是複數形式 tests，不是 test。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 2 答案：D</h3>
+                    <p>兩種方式都可以執行 pytest 測試。<code>pytest test.py</code> 是簡寫，<code>python -m pytest test.py -v</code> 則更明確且顯示詳細資訊（-v 表示 verbose）。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 3 答案：B</h3>
+                    <p>FAILED 表示測試執行成功，但函式的實際輸出與測試預期不符。這可能是函式有 Bug，也可能是測試案例的預期值設錯了。</p>
+                </div>
+            </div>
+            <div class="unlock-overlay-container">
+                <button class="unlock-btn" onclick="openPasswordModal(13)">🔓 點擊解鎖解答</button>
+            </div>
+        </div>
+
+        <!-- Slide 15: 重點回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎉 Part 10 重點回顧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>三種產生測試方法</h3>
+                        <p>1. /tests 指令<br>2. 註解驅動<br>3. Chat 對話</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>兩大測試框架</h3>
+                        <p>unittest（內建）<br>pytest（推薦）</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>執行與解讀</h3>
+                        <p>終端機執行測試<br>PASSED = 通過<br>FAILED = 失敗</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>記得檢查</h3>
+                        <p>Copilot 產生的測試<br>可能需要補充邊界條件</p>
+                    </div>
+                </div>
+
+                <div class="box tip" style="margin-top: 25px; text-align: center;">
+                    <h3>核心觀念</h3>
+                    <p style="font-size: 20px; margin-bottom: 0;">
+                        「好的測試是程式品質的守護者」
+                    </p>
+                </div>
+
+                <div class="box info" style="margin-top: 15px; text-align: center;">
+                    <h3>下一單元預告</h3>
+                    <p style="font-size: 18px; margin-bottom: 0;">
+                        <strong>Part 11：實戰應用 - 程式碼重構</strong><br>
+                        用 Copilot 優化和改善程式碼結構！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 導航箭頭 -->
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">❮</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">❯</button>
+
+    <!-- 頁碼指示器 -->
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <!-- 密碼彈窗 -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-box">
+            <h2 style="color: #1e3c72; margin-bottom: 10px;">🔒 解鎖解答</h2>
+            <p style="color: #666;">請輸入密碼以查看答案</p>
+            <input type="password" class="modal-input" id="passwordInput" placeholder="請輸入密碼" autocomplete="off">
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="modal-btn" onclick="verifyPassword()">確認</button>
+                <button class="modal-btn" style="background: #999;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 狀態管理
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let unlockedSlides = new Set();
+        let pendingUnlockIndex = -1;
+        const CORRECT_PASSWORD = "0207";
+
+        function init() {
+            createIndicators();
+            showSlide(0);
+            updateButtons();
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'Enter' && document.getElementById('passwordModal').style.display === 'flex') {
+                verifyPassword();
+            }
+        }
+
+        function createIndicators() {
+            const container = document.getElementById('indicatorContainer');
+            container.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => goToSlide(index);
+                container.appendChild(dot);
+            });
+        }
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            if (slides[index].classList.contains('locked') && !unlockedSlides.has(index)) {
+                // 保持 locked 狀態
+            } else {
+                slides[index].classList.remove('locked');
+            }
+
+            currentSlide = index;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === index);
+            });
+
+            updateButtons();
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // 密碼邏輯
+        function openPasswordModal(targetIndex) {
+            pendingUnlockIndex = targetIndex;
+            const modal = document.getElementById('passwordModal');
+            const input = document.getElementById('passwordInput');
+            modal.style.display = 'flex';
+            input.value = '';
+            input.focus();
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            if (input.value === CORRECT_PASSWORD) {
+                unlockedSlides.add(pendingUnlockIndex);
+
+                if (currentSlide === pendingUnlockIndex) {
+                    slides[currentSlide].classList.remove('locked');
+                } else {
+                    showSlide(pendingUnlockIndex);
+                }
+
+                closeModal();
+            } else {
+                alert("❌ 密碼錯誤！");
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

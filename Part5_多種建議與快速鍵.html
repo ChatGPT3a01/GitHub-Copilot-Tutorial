@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 5 - 多種建議與快速鍵操作</title>
+    <style>
+        /* 基礎設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* === 導航列 === */
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .nav-buttons { display: flex; gap: 12px; }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* === 導航箭頭 === */
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-arrow:hover {
+            background: rgba(255,255,255,0.5);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .prev-arrow { left: 30px; }
+        .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* === 投影片容器 === */
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            padding-top: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide {
+            position: absolute;
+            top: 60px; left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 20;
+        }
+
+        /* === 內容卡片 === */
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 45px 55px;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 88vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* === 標題樣式 === */
+        h1 {
+            color: #1e3c72;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #2a5298;
+            font-size: 34px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #1e3c72;
+            padding-bottom: 12px;
+        }
+        h3 {
+            color: #1e3c72;
+            font-size: 22px;
+            margin: 20px 0 12px 0;
+        }
+        h4 {
+            color: #4facfe;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p, li {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin: 12px 0;
+        }
+
+        /* === 程式碼區塊 === */
+        code {
+            background: #f0f2f5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d63384;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 16px;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+
+        .code-comment { color: #6a9955; }
+        .code-keyword { color: #569cd6; }
+        .code-function { color: #dcdcaa; }
+        .code-string { color: #ce9178; }
+
+        /* === 提示框 === */
+        .box {
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin: 18px 0;
+            border-left: 6px solid;
+            font-size: 17px;
+        }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .tip { background: #f3e5f5; border-color: #9c27b0; color: #6a1b9a; }
+        .danger { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        .highlight {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #004d40;
+        }
+
+        /* === 概念卡片網格 === */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 20px;
+        }
+        .concept-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 22px;
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+        .concept-card h3 {
+            margin-top: 0;
+            color: #1e3c72;
+        }
+
+        /* === 表格樣式 === */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 17px;
+        }
+        th, td {
+            padding: 12px 18px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        /* === 截圖圖片樣式 === */
+        .screenshot {
+            width: 100%;
+            max-width: 850px;
+            margin: 15px auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 3px solid #e9ecef;
+        }
+
+        .screenshot-small {
+            max-width: 650px;
+        }
+
+        .screenshot-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .screenshot-caption {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        /* === 步驟樣式 === */
+        .step-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin: 18px 0;
+            padding: 18px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h3 {
+            margin-top: 0;
+            margin-bottom: 8px;
+        }
+
+        /* === 快捷鍵樣式 === */
+        .kbd {
+            background: linear-gradient(180deg, #f5f5f5, #e0e0e0);
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 4px 10px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            box-shadow: 0 2px 0 #999;
+            margin: 0 3px;
+        }
+
+        /* === 快速鍵大型卡片 === */
+        .shortcut-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .shortcut-card .kbd {
+            background: white;
+            color: #667eea;
+            font-size: 24px;
+            padding: 10px 20px;
+            margin: 10px 5px;
+            box-shadow: 0 4px 0 #ccc;
+        }
+
+        .shortcut-card h3 {
+            color: white;
+            margin-bottom: 15px;
+        }
+
+        .shortcut-card p {
+            color: rgba(255,255,255,0.9);
+            font-size: 16px;
+        }
+
+        /* === 測驗樣式 === */
+        .quiz-container {
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #1e3c72;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .quiz-btn {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(30,60,114,0.3);
+        }
+        .quiz-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .quiz-option {
+            background: #f8f9fa;
+            padding: 12px 18px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+        /* === 頁碼指示器 === */
+        .indicators {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 4000;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dot:hover {
+            background: rgba(255,255,255,0.7);
+        }
+        .dot.active {
+            background: #4facfe;
+            transform: scale(1.3);
+        }
+
+        /* === 解答鎖定樣式 === */
+        .slide.locked .content-card {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .unlock-overlay-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .slide.locked .unlock-overlay-container {
+            display: flex;
+        }
+
+        .unlock-btn {
+            background: rgba(30, 60, 114, 0.95);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 40px;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+            pointer-events: auto;
+        }
+        .unlock-btn:hover {
+            transform: scale(1.1);
+            background: #2a5298;
+        }
+
+        /* === 密碼彈窗 === */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            outline: none;
+        }
+        .modal-input:focus { border-color: #1e3c72; }
+
+        .modal-btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        /* === 特色標籤 === */
+        .tag-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+
+        .tag {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: #004d40;
+            font-size: 15px;
+        }
+
+        /* === 比較表格 === */
+        .compare-table {
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .compare-table th {
+            text-align: center;
+        }
+
+        .compare-table td {
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            .concept-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導航列 -->
+    <div class="nav-bar">
+        <div class="nav-title">Part 5 - 多種建議與快速鍵操作</div>
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-btn">🏠 課程首頁</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">🖥️ 全螢幕</button>
+            <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="nav-btn">📘 FB</a>
+            <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="nav-btn">🎥 YT</a>
+        </div>
+    </div>
+
+    <!-- 投影片內容 -->
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h4>GitHub Copilot 完整教學</h4>
+                <h1>Part 5：多種建議與快速鍵操作</h1>
+                <h2 style="border: none; font-weight: normal; font-size: 24px; color: #666; max-width: 800px;">
+                    掌握 Copilot 的多種選擇，讓 AI 聽你的
+                </h2>
+                <div class="tag-container">
+                    <span class="tag">多種建議</span>
+                    <span class="tag">快速鍵</span>
+                    <span class="tag">部分接受</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 學習目標 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 本單元學習目標</h2>
+                <p>完成這個單元後，你將能夠：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 了解多種建議</h3>
+                        <p>知道 Copilot 對同一段程式碼會產生多個不同的建議</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 開啟建議面板</h3>
+                        <p>學會用 Ctrl + Enter 一次查看所有建議選項</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 切換建議</h3>
+                        <p>熟練使用 Alt + ] 和 Alt + [ 快速切換不同建議</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 部分接受</h3>
+                        <p>掌握 Ctrl + → 逐字接受，精細控制建議內容</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 為什麼有多種建議 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🤔 為什麼 Copilot 會有多種建議？</h2>
+
+                <div class="box info" style="font-size: 20px;">
+                    <strong>重要觀念：</strong>AI 不是只有一個「標準答案」，而是提供多種可能讓你選擇！
+                </div>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>🧠 同一問題，多種解法</h3>
+                        <p>例如排序函式，可以用 bubble sort、quick sort、或內建方法，各有優缺點</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>✍️ 不同寫法風格</h3>
+                        <p>有人喜歡簡潔、有人喜歡易讀，Copilot 會提供不同風格的程式碼</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>🎯 讓開發者做主</h3>
+                        <p>AI 是輔助工具，最終選擇權在你手上</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>📚 學習不同寫法</h3>
+                        <p>透過比較不同建議，可以學到新的程式寫法</p>
+                    </div>
+                </div>
+
+                <div class="box tip">
+                    <strong>教學重點：</strong>「不是 AI 給你一個答案，是你用快速鍵在不同答案之間做選擇。」
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: 開啟建議面板 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📋 開啟建議面板：一次看所有建議</h2>
+
+                <div class="shortcut-card">
+                    <h3>開啟 Copilot 建議面板</h3>
+                    <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span>
+                    <p>Mac 使用者：<span class="kbd">Cmd</span> + <span class="kbd">Enter</span></p>
+                </div>
+
+                <h3>操作步驟</h3>
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>輸入程式碼開頭</h3>
+                        <p>例如：<code>function sortArray(arr) {</code></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>按 Enter 換行</h3>
+                        <p>游標停在新的一行</p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>按 Ctrl + Enter</h3>
+                        <p>開啟建議面板，一次看到所有可用的建議！</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 建議面板示範 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📸 建議面板實際畫面</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part5/5-1.png" alt="Copilot 建議面板" class="screenshot">
+                    <p class="screenshot-caption">按 Ctrl + Enter 後出現的 Copilot 建議面板</p>
+                </div>
+
+                <div class="box success">
+                    <strong>畫面說明：</strong>
+                    <ul style="margin-bottom: 0;">
+                        <li>獨立的建議面板會出現在編輯器中</li>
+                        <li>顯示多個程式碼建議（每個是一整段程式）</li>
+                        <li>可以點選「Accept」按鈕接受選中的建議</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: 多個建議選項 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🔄 多個不同的建議選項</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part5/5-2.png" alt="多個建議選項" class="screenshot">
+                    <p class="screenshot-caption">同一個函式，Copilot 提供多種不同的實作方式</p>
+                </div>
+
+                <div class="box tip">
+                    <strong>教學重點：</strong>這張圖證明了 Copilot 不是只有一個答案！<br>
+                    「原來同一個排序函式，可以有這麼多種寫法讓我選。」
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 內嵌建議切換 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⬅️ ➡️ 切換建議：不開面板的快速方法</h2>
+
+                <p>如果你不想開啟面板，可以直接在編輯器中切換不同建議：</p>
+
+                <div class="shortcut-card">
+                    <h3>切換到下一個建議</h3>
+                    <span class="kbd">Alt</span> + <span class="kbd">]</span>
+                    <p>Mac 使用者：<span class="kbd">Option</span> + <span class="kbd">]</span></p>
+                </div>
+
+                <div class="shortcut-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <h3>切換到上一個建議</h3>
+                    <span class="kbd">Alt</span> + <span class="kbd">[</span>
+                    <p>Mac 使用者：<span class="kbd">Option</span> + <span class="kbd">[</span></p>
+                </div>
+
+                <div class="box info">
+                    <strong>優點：</strong>不用開面板，直接在編輯器中即時預覽不同建議，速度更快！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 內嵌建議示範 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📸 內嵌建議：灰色提示</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part5/5-3.png" alt="內嵌灰色建議" class="screenshot">
+                    <p class="screenshot-caption">編輯器中的灰色建議（尚未接受）</p>
+                </div>
+
+                <div class="box success">
+                    <strong>畫面說明：</strong>
+                    <ul style="margin-bottom: 0;">
+                        <li>灰色文字 = Copilot 的建議（還沒接受）</li>
+                        <li>游標在建議前方</li>
+                        <li>可以按 <span class="kbd">Alt</span> + <span class="kbd">]</span> 切換到其他建議</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 切換建議效果 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📸 按 Alt + ] 後：切換到另一個建議</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part5/5-4.png" alt="切換後的建議" class="screenshot">
+                    <p class="screenshot-caption">按 Alt + ] 後，建議內容已經改變</p>
+                </div>
+
+                <div class="box tip">
+                    <strong>觀察重點：</strong>
+                    <ul style="margin-bottom: 0;">
+                        <li>灰色建議的「內容已經不同」</li>
+                        <li>可能是不同寫法、不同演算法</li>
+                        <li>繼續按 Alt + ] 可以看到更多選項</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 快速鍵總整理 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⌨️ 快速鍵總整理（必背！）</h2>
+
+                <table class="compare-table">
+                    <tr>
+                        <th>功能</th>
+                        <th>Windows / Linux</th>
+                        <th>Mac</th>
+                    </tr>
+                    <tr>
+                        <td><strong>接受建議</strong></td>
+                        <td><span class="kbd">Tab</span></td>
+                        <td><span class="kbd">Tab</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>拒絕建議</strong></td>
+                        <td><span class="kbd">Esc</span></td>
+                        <td><span class="kbd">Esc</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>下一個建議</strong></td>
+                        <td><span class="kbd">Alt</span> + <span class="kbd">]</span></td>
+                        <td><span class="kbd">Option</span> + <span class="kbd">]</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>上一個建議</strong></td>
+                        <td><span class="kbd">Alt</span> + <span class="kbd">[</span></td>
+                        <td><span class="kbd">Option</span> + <span class="kbd">[</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>開啟建議面板</strong></td>
+                        <td><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span></td>
+                        <td><span class="kbd">Cmd</span> + <span class="kbd">Enter</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>部分接受（逐字）</strong></td>
+                        <td><span class="kbd">Ctrl</span> + <span class="kbd">→</span></td>
+                        <td><span class="kbd">Cmd</span> + <span class="kbd">→</span></td>
+                    </tr>
+                </table>
+
+                <div class="box warning">
+                    <strong>重點：</strong>這些快速鍵一定要熟練！用 Copilot 的效率差別就在這裡。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 部分接受功能 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>✂️ 部分接受：逐字接受建議</h2>
+
+                <div class="box info" style="font-size: 20px;">
+                    <strong>進階技巧：</strong>Copilot 不是只能「全收」或「全不要」，你可以只接受一部分！
+                </div>
+
+                <div class="shortcut-card">
+                    <h3>逐字接受建議</h3>
+                    <span class="kbd">Ctrl</span> + <span class="kbd">→</span>
+                    <p>Mac 使用者：<span class="kbd">Cmd</span> + <span class="kbd">→</span></p>
+                </div>
+
+                <h3>使用情境</h3>
+                <ul>
+                    <li>建議的前半段很好，但後半段不太對</li>
+                    <li>想要逐步確認每個部分</li>
+                    <li>需要更精細的控制</li>
+                </ul>
+
+                <div class="box tip">
+                    <strong>操作方式：</strong>每按一次 <span class="kbd">Ctrl</span> + <span class="kbd">→</span>，就會接受一個詞（Word）
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 部分接受示範 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📸 部分接受實際效果</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part5/5-5.png" alt="部分接受建議" class="screenshot">
+                    <p class="screenshot-caption">只接受建議的一部分，前半段已變正式顏色，後半段仍是灰色</p>
+                </div>
+
+                <div class="box success">
+                    <strong>畫面說明：</strong>
+                    <ul style="margin-bottom: 0;">
+                        <li><strong>前半段</strong>：已變成正式程式碼顏色（已接受）</li>
+                        <li><strong>後半段</strong>：仍然是灰色建議（尚未接受）</li>
+                        <li>可以繼續按 Ctrl + → 接受更多，或按 Esc 取消剩餘部分</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: Copilot 設定 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⚙️ 確認 Copilot 設定狀態</h2>
+
+                <p>如果 Copilot 沒有反應，可以到設定頁面確認：</p>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>開啟設定</h3>
+                        <p><span class="kbd">Ctrl</span> + <span class="kbd">,</span></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>搜尋 Copilot</h3>
+                        <p>在搜尋框輸入 <code>copilot</code></p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part5/5-6.png" alt="Copilot 設定" class="screenshot">
+                    <p class="screenshot-caption">VS Code 設定中的 Copilot 相關選項</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: 小技巧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💡 獲得更好建議的小技巧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 清楚的函式名稱</h3>
+                        <p>用 <code>calculateTotalPrice</code> 而不是 <code>calc</code>，讓 AI 更懂你的意圖</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 提供足夠上下文</h3>
+                        <p>檔案中已有的程式碼會影響建議品質</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 有意義的變數名稱</h3>
+                        <p>用 <code>userAge</code> 而不是 <code>x</code></p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 加入註解說明</h3>
+                        <p>用中文或英文註解描述你想要的功能</p>
+                    </div>
+                </div>
+
+                <div class="box tip">
+                    <strong>重要觀念：</strong>如果建議都不滿意，試著自己先輸入幾個字，讓 Copilot 根據你的開頭重新生成建議。
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: 常見問題 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>❓ 常見問題 Q&A</h2>
+
+                <table>
+                    <tr>
+                        <th style="width: 45%;">問題</th>
+                        <th>解答</th>
+                    </tr>
+                    <tr>
+                        <td>為什麼有時只有一個建議？</td>
+                        <td>簡單的程式碼可能只有一種最佳解法，這是正常的</td>
+                    </tr>
+                    <tr>
+                        <td>建議都不滿意怎麼辦？</td>
+                        <td>自己先輸入幾個字，讓 Copilot 根據你的開頭重新生成</td>
+                    </tr>
+                    <tr>
+                        <td>Alt + ] 沒反應？</td>
+                        <td>確認畫面中有灰色建議，且游標在建議前方</td>
+                    </tr>
+                    <tr>
+                        <td>Ctrl + Enter 沒開面板？</td>
+                        <td>可能該位置沒有建議，試著換個位置或重新輸入</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 16: 實作練習 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🏋️ 實作練習</h2>
+
+                <div class="box info">
+                    <strong>練習目標：</strong>熟悉所有快速鍵操作
+                </div>
+
+                <h3>練習步驟</h3>
+                <ol>
+                    <li>建立新檔案 <code>practice5.js</code></li>
+                    <li>輸入：<code>function sortArray(arr) {</code> 然後按 Enter</li>
+                    <li>按 <span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> 開啟建議面板，觀察有幾種建議</li>
+                    <li>按 <span class="kbd">Esc</span> 關閉面板</li>
+                    <li>等待灰色建議出現，按 <span class="kbd">Alt</span> + <span class="kbd">]</span> 切換建議</li>
+                    <li>按 <span class="kbd">Ctrl</span> + <span class="kbd">→</span> 逐字接受部分建議</li>
+                </ol>
+
+                <pre><span class="code-comment">// 練習用程式碼</span>
+<span class="code-keyword">function</span> <span class="code-function">sortArray</span>(arr) {
+    <span class="code-comment">// 在這裡等待 Copilot 建議</span>
+}</pre>
+            </div>
+        </div>
+
+        <!-- Slide 17: 隨堂測驗 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 隨堂測驗</h2>
+
+                <div class="quiz-container">
+                    <h3>問題 1：如何開啟 Copilot 建議面板？</h3>
+                    <div class="quiz-option">A. Tab</div>
+                    <div class="quiz-option">B. Ctrl + Enter</div>
+                    <div class="quiz-option">C. Alt + ]</div>
+                    <div class="quiz-option">D. Ctrl + →</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 2：如何切換到下一個建議（不開面板）？</h3>
+                    <div class="quiz-option">A. Tab</div>
+                    <div class="quiz-option">B. Ctrl + Enter</div>
+                    <div class="quiz-option">C. Alt + ]</div>
+                    <div class="quiz-option">D. Esc</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 3：如何只接受建議的一部分（逐字接受）？</h3>
+                    <div class="quiz-option">A. Tab</div>
+                    <div class="quiz-option">B. Ctrl + →</div>
+                    <div class="quiz-option">C. Alt + [</div>
+                    <div class="quiz-option">D. Ctrl + Enter</div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="quiz-btn" onclick="openPasswordModal(17)">🔑 查看解答</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: 測驗解答 -->
+        <div class="slide locked" id="slide-17">
+            <div class="content-card">
+                <h2>✅ 測驗解答</h2>
+
+                <div class="box success">
+                    <h3>問題 1 答案：B</h3>
+                    <p><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> 可以開啟 Copilot 建議面板，一次查看所有可用的建議。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 2 答案：C</h3>
+                    <p><span class="kbd">Alt</span> + <span class="kbd">]</span> 可以在編輯器中直接切換到下一個建議，不需要開啟面板。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 3 答案：B</h3>
+                    <p><span class="kbd">Ctrl</span> + <span class="kbd">→</span> 是「逐字接受」功能，每按一次接受一個詞。</p>
+                </div>
+            </div>
+            <div class="unlock-overlay-container">
+                <button class="unlock-btn" onclick="openPasswordModal(17)">🔓 點擊解鎖解答</button>
+            </div>
+        </div>
+
+        <!-- Slide 19: 重點回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎉 Part 5 重點回顧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>多種建議</h3>
+                        <p>Copilot 會提供多種不同的程式碼建議，讓你選擇最適合的</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>建議面板</h3>
+                        <p><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span><br>一次查看所有建議</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>切換建議</h3>
+                        <p><span class="kbd">Alt</span> + <span class="kbd">]</span> 下一個<br><span class="kbd">Alt</span> + <span class="kbd">[</span> 上一個</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>部分接受</h3>
+                        <p><span class="kbd">Ctrl</span> + <span class="kbd">→</span><br>逐字接受，精細控制</p>
+                    </div>
+                </div>
+
+                <div class="box tip" style="margin-top: 25px; text-align: center;">
+                    <h3>核心觀念</h3>
+                    <p style="font-size: 20px; margin-bottom: 0;">
+                        「不是 AI 給你一個答案，是你用快速鍵在不同答案之間做選擇。」
+                    </p>
+                </div>
+
+                <div class="box info" style="margin-top: 15px; text-align: center;">
+                    <h3>下一單元預告</h3>
+                    <p style="font-size: 18px; margin-bottom: 0;">
+                        <strong>Part 6：註解驅動開發 - 用中文寫程式</strong><br>
+                        學會用中文註解讓 Copilot 幫你寫程式！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 導航箭頭 -->
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">❮</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">❯</button>
+
+    <!-- 頁碼指示器 -->
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <!-- 密碼彈窗 -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-box">
+            <h2 style="color: #1e3c72; margin-bottom: 10px;">🔒 解鎖解答</h2>
+            <p style="color: #666;">請輸入密碼以查看答案</p>
+            <input type="password" class="modal-input" id="passwordInput" placeholder="請輸入密碼" autocomplete="off">
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="modal-btn" onclick="verifyPassword()">確認</button>
+                <button class="modal-btn" style="background: #999;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 狀態管理
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let unlockedSlides = new Set();
+        let pendingUnlockIndex = -1;
+        const CORRECT_PASSWORD = "0207";
+
+        function init() {
+            createIndicators();
+            showSlide(0);
+            updateButtons();
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'Enter' && document.getElementById('passwordModal').style.display === 'flex') {
+                verifyPassword();
+            }
+        }
+
+        function createIndicators() {
+            const container = document.getElementById('indicatorContainer');
+            container.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => goToSlide(index);
+                container.appendChild(dot);
+            });
+        }
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            if (slides[index].classList.contains('locked') && !unlockedSlides.has(index)) {
+                // 保持 locked 狀態
+            } else {
+                slides[index].classList.remove('locked');
+            }
+
+            currentSlide = index;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === index);
+            });
+
+            updateButtons();
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // 密碼邏輯
+        function openPasswordModal(targetIndex) {
+            pendingUnlockIndex = targetIndex;
+            const modal = document.getElementById('passwordModal');
+            const input = document.getElementById('passwordInput');
+            modal.style.display = 'flex';
+            input.value = '';
+            input.focus();
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            if (input.value === CORRECT_PASSWORD) {
+                unlockedSlides.add(pendingUnlockIndex);
+
+                if (currentSlide === pendingUnlockIndex) {
+                    slides[currentSlide].classList.remove('locked');
+                } else {
+                    showSlide(pendingUnlockIndex);
+                }
+
+                closeModal();
+            } else {
+                alert("❌ 密碼錯誤！");
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

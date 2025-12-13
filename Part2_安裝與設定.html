@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 2 - 安裝與設定 VS Code 環境</title>
+    <style>
+        /* 基礎設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* === 導航列 === */
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .nav-buttons { display: flex; gap: 12px; }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* === 導航箭頭 === */
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-arrow:hover {
+            background: rgba(255,255,255,0.5);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .prev-arrow { left: 30px; }
+        .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* === 投影片容器 === */
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            padding-top: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide {
+            position: absolute;
+            top: 60px; left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 20;
+        }
+
+        /* === 內容卡片 === */
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 45px 55px;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 88vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* === 標題樣式 === */
+        h1 {
+            color: #1e3c72;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #2a5298;
+            font-size: 34px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #1e3c72;
+            padding-bottom: 12px;
+        }
+        h3 {
+            color: #1e3c72;
+            font-size: 22px;
+            margin: 20px 0 12px 0;
+        }
+        h4 {
+            color: #4facfe;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p, li {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin: 12px 0;
+        }
+
+        /* === 程式碼區塊 === */
+        code {
+            background: #f0f2f5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d63384;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin: 15px 0;
+            font-size: 16px;
+            line-height: 1.6;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        /* === 提示框 === */
+        .box {
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin: 18px 0;
+            border-left: 6px solid;
+            font-size: 17px;
+        }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .tip { background: #f3e5f5; border-color: #9c27b0; color: #6a1b9a; }
+
+        .highlight {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #004d40;
+        }
+
+        /* === 概念卡片網格 === */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 18px;
+            margin-top: 20px;
+        }
+        .concept-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 22px;
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+        .concept-card h3 {
+            margin-top: 0;
+            color: #1e3c72;
+        }
+
+        /* === 表格樣式 === */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 18px 0;
+            font-size: 17px;
+        }
+        th, td {
+            padding: 12px 18px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        /* === 截圖圖片樣式 === */
+        .screenshot {
+            width: 100%;
+            max-width: 850px;
+            margin: 15px auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 3px solid #e9ecef;
+        }
+
+        .screenshot-small {
+            max-width: 650px;
+        }
+
+        .screenshot-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .screenshot-caption {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 18px;
+            margin: 18px 0;
+        }
+
+        .screenshot-grid img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border: 2px solid #e9ecef;
+        }
+
+        /* === 步驟樣式 === */
+        .step-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .step-number {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        /* === 快捷鍵樣式 === */
+        .kbd {
+            background: linear-gradient(180deg, #f5f5f5, #e0e0e0);
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 4px 10px;
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            box-shadow: 0 2px 0 #999;
+            margin: 0 3px;
+        }
+
+        /* === 測驗樣式 === */
+        .quiz-container {
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #1e3c72;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .quiz-btn {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(30,60,114,0.3);
+        }
+        .quiz-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .quiz-option {
+            background: #f8f9fa;
+            padding: 12px 18px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+        /* === 頁碼指示器 === */
+        .indicators {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 4000;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dot:hover {
+            background: rgba(255,255,255,0.7);
+        }
+        .dot.active {
+            background: #4facfe;
+            transform: scale(1.3);
+        }
+
+        /* === 解答鎖定樣式 === */
+        .slide.locked .content-card {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .unlock-overlay-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .slide.locked .unlock-overlay-container {
+            display: flex;
+        }
+
+        .unlock-btn {
+            background: rgba(30, 60, 114, 0.95);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 40px;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+            pointer-events: auto;
+        }
+        .unlock-btn:hover {
+            transform: scale(1.1);
+            background: #2a5298;
+        }
+
+        /* === 密碼彈窗 === */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            outline: none;
+        }
+        .modal-input:focus { border-color: #1e3c72; }
+
+        .modal-btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        /* === 特色標籤 === */
+        .tag-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+
+        .tag {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: #004d40;
+            font-size: 15px;
+        }
+
+        /* === 檢查清單 === */
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 10px 0;
+            padding-left: 35px;
+            position: relative;
+        }
+        .checklist li::before {
+            content: "☐";
+            position: absolute;
+            left: 0;
+            font-size: 20px;
+            color: #1e3c72;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導航列 -->
+    <div class="nav-bar">
+        <div class="nav-title">Part 2 - 安裝與設定 VS Code 環境</div>
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-btn">🏠 課程首頁</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">🖥️ 全螢幕</button>
+            <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="nav-btn">📘 FB</a>
+            <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="nav-btn">🎥 YT</a>
+        </div>
+    </div>
+
+    <!-- 投影片內容 -->
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h4>GitHub Copilot 完整教學</h4>
+                <h1>Part 2：安裝與設定</h1>
+                <h2 style="border: none; font-weight: normal; font-size: 24px; color: #666; max-width: 800px;">
+                    VS Code 環境準備 - 三步驟完成 Copilot 安裝與啟用
+                </h2>
+                <div class="tag-container">
+                    <span class="tag">VS Code</span>
+                    <span class="tag">擴充套件</span>
+                    <span class="tag">環境設定</span>
+                    <span class="tag">中文介面</span>
+                </div>
+                <div class="screenshot-container" style="margin-top: 25px;">
+                    <img src="images/part2/2-1.png" alt="VS Code 歡迎畫面" class="screenshot" style="max-width: 600px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 學習目標 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 本單元學習目標</h2>
+                <p>完成這個單元後，你將能夠：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 安裝中文套件</h3>
+                        <p>將 VS Code 介面切換為繁體中文，方便學習操作</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 安裝 Copilot</h3>
+                        <p>學會安裝 GitHub Copilot 與 Copilot Chat 擴充套件</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 登入授權</h3>
+                        <p>完成 GitHub 帳號連結與授權流程</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 驗證安裝</h3>
+                        <p>確認 Copilot 已成功啟用並開始運作</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 事前準備 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📋 事前準備檢查清單</h2>
+                <p>開始之前，請確認你已經準備好以下項目：</p>
+
+                <table>
+                    <tr>
+                        <th>項目</th>
+                        <th>說明</th>
+                        <th>檢查</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Windows 電腦</strong></td>
+                        <td>Windows 10 或 Windows 11</td>
+                        <td>☐</td>
+                    </tr>
+                    <tr>
+                        <td><strong>VS Code</strong></td>
+                        <td>已安裝 Visual Studio Code</td>
+                        <td>☐</td>
+                    </tr>
+                    <tr>
+                        <td><strong>GitHub 帳號</strong></td>
+                        <td>已註冊 GitHub 並能正常登入</td>
+                        <td>☐</td>
+                    </tr>
+                    <tr>
+                        <td><strong>網路連線</strong></td>
+                        <td>需要連網下載擴充套件與驗證</td>
+                        <td>☐</td>
+                    </tr>
+                </table>
+
+                <div class="box info">
+                    <strong>還沒有 VS Code？</strong><br>
+                    請前往 <code>https://code.visualstudio.com</code> 下載安裝
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: 安裝中文套件 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🇹🇼 Step 0：安裝中文語言套件</h2>
+                <p>建議先將 VS Code 介面切換為繁體中文，學習起來更輕鬆！</p>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>開啟擴充功能面板</h3>
+                        <p>點擊左側的擴充功能圖示，或按 <span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">X</span></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>搜尋中文套件</h3>
+                        <p>在搜尋框輸入：<code>Chinese (Traditional)</code></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>安裝並重新啟動</h3>
+                        <p>找到「<strong>Chinese (Traditional) Language Pack</strong>」，點擊安裝，然後重新啟動 VS Code</p>
+                    </div>
+                </div>
+
+                <div class="box success">
+                    <strong>安裝成功後：</strong>上方選單會變成「檔案、編輯、檢視、前往、執行、終端機、說明」
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: VS Code 歡迎畫面 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>✅ 確認 VS Code 環境正確</h2>
+                <p>安裝完中文套件後，你的 VS Code 應該會像這樣：</p>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-1.png" alt="VS Code 中文歡迎畫面" class="screenshot">
+                    <p class="screenshot-caption">VS Code 中文版歡迎畫面與版本資訊</p>
+                </div>
+
+                <div class="box tip">
+                    <strong>確認要點：</strong>
+                    <ul style="margin: 10px 0 0 20px;">
+                        <li>上方選單是中文（檔案、編輯、檢視...）</li>
+                        <li>可以從「說明 → 關於」查看版本號</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: 開啟擴充功能面板 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📦 Step 1：開啟擴充功能面板</h2>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>找到擴充功能圖示</h3>
+                        <p>看左側活動列，找到 <strong>四個小方塊組成的圖示</strong></p>
+                        <p>滑鼠移上去會顯示「擴充功能」</p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>或使用快捷鍵</h3>
+                        <p><span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">X</span></p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-2.png" alt="擴充功能面板" class="screenshot">
+                    <p class="screenshot-caption">左側的擴充功能圖示與搜尋面板</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 搜尋 Copilot -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🔍 Step 2：搜尋 GitHub Copilot</h2>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>在搜尋框輸入</h3>
+                        <p><code>GitHub Copilot</code></p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-3.png" alt="搜尋 GitHub Copilot" class="screenshot">
+                    <p class="screenshot-caption">搜尋結果會顯示 GitHub Copilot 相關套件</p>
+                </div>
+
+                <div class="box warning">
+                    <strong>注意！</strong>請確認發行者是 <span class="highlight">GitHub</span> 官方，不要安裝其他名稱相似的假冒套件！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 安裝兩個套件 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⬇️ 安裝兩個重要套件</h2>
+                <p>建議同時安裝這兩個官方套件：</p>
+
+                <div class="concept-grid">
+                    <div class="concept-card" style="border-left: 5px solid #28a745;">
+                        <h3>GitHub Copilot</h3>
+                        <p><strong>程式碼自動補全</strong></p>
+                        <p>在你打字時即時提供程式碼建議</p>
+                        <p style="color: #28a745; font-weight: bold;">必裝！</p>
+                    </div>
+                    <div class="concept-card" style="border-left: 5px solid #2196f3;">
+                        <h3>GitHub Copilot Chat</h3>
+                        <p><strong>對話式 AI 問答</strong></p>
+                        <p>可以直接用對話方式詢問程式問題</p>
+                        <p style="color: #2196f3; font-weight: bold;">強烈建議！</p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-4.png" alt="GitHub Copilot Chat" class="screenshot">
+                    <p class="screenshot-caption">GitHub Copilot Chat 套件詳細頁面</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 登入提示 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🔑 Step 3：登入 GitHub 帳號</h2>
+                <p>安裝完成後，VS Code 右下角會出現登入提示：</p>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-5.png" alt="登入提示" class="screenshot screenshot-small">
+                    <p class="screenshot-caption">右下角的「登入以使用 GitHub Copilot」提示</p>
+                </div>
+
+                <div class="box info">
+                    <strong>沒有看到提示？</strong>別擔心！<br>
+                    按 <span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">P</span>，輸入「<code>Copilot: 登入</code>」即可手動觸發
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: GitHub 授權 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🌐 GitHub 授權頁面</h2>
+                <p>點擊登入後，瀏覽器會自動開啟 GitHub 的授權頁面：</p>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-6.png" alt="GitHub 授權頁面" class="screenshot">
+                    <p class="screenshot-caption">GitHub 官方授權確認頁面</p>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">✓</div>
+                    <div class="step-content">
+                        <h3>確認並授權</h3>
+                        <p>確認網址是 <code>github.com</code>，然後點擊綠色的「<strong>Authorize Visual Studio Code</strong>」按鈕</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 驗證安裝成功 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>✨ 驗證安裝成功</h2>
+                <p>授權完成後，回到 VS Code 測試 Copilot 是否正常運作：</p>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>新建一個 Python 檔案</h3>
+                        <p>檔案 → 新增檔案 → 儲存為 <code>test.py</code></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>輸入中文註解</h3>
+                        <pre style="margin: 10px 0;"># 計算 1 到 100 的總和</pre>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>按 Enter 換行，等待建議出現</h3>
+                        <p>1-2 秒後會看到灰色的程式碼建議</p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-7.png" alt="Copilot 建議" class="screenshot">
+                    <p class="screenshot-caption">Copilot 成功生成灰色程式碼建議</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 重要觀念 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💡 重要觀念：補全 vs 對話</h2>
+
+                <div class="box tip" style="font-size: 20px; padding: 25px;">
+                    「如果你在『<strong>聊天框</strong>』打字，Copilot 會跟你聊天；<br>
+                    如果你在『<strong>程式碼區</strong>』打字，Copilot 才會幫你寫程式。」
+                </div>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>程式碼區（左側）</h3>
+                        <p>在這裡輸入註解或程式碼</p>
+                        <p>Copilot 會顯示<strong>灰色建議</strong></p>
+                        <p>按 <span class="kbd">Tab</span> 接受</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>聊天區（右側/底部）</h3>
+                        <p>在這裡輸入問題</p>
+                        <p>Copilot Chat 會<strong>用對話回答</strong></p>
+                        <p>適合問問題、解釋程式</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 命令面板 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⌨️ 進階技巧：命令面板</h2>
+                <p>學會使用命令面板，可以手動控制 Copilot 的各種功能：</p>
+
+                <div class="step-container">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>開啟命令面板</h3>
+                        <p><span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">P</span></p>
+                    </div>
+                </div>
+
+                <div class="step-container">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>輸入「Copilot」</h3>
+                        <p>會顯示所有 Copilot 相關指令</p>
+                    </div>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-8.png" alt="命令面板" class="screenshot">
+                    <p class="screenshot-caption">命令面板中的 Copilot 相關指令</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: 常用指令 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 Copilot 常用指令</h2>
+
+                <table>
+                    <tr>
+                        <th>指令</th>
+                        <th>功能說明</th>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot: 登入</code></td>
+                        <td>登入 GitHub 帳號</td>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot: 登出</code></td>
+                        <td>登出目前帳號</td>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot: 啟用</code></td>
+                        <td>開啟自動補全功能</td>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot: 停用</code></td>
+                        <td>暫時關閉自動補全</td>
+                    </tr>
+                    <tr>
+                        <td><code>GitHub Copilot: 開啟聊天</code></td>
+                        <td>開啟 Copilot Chat 面板</td>
+                    </tr>
+                </table>
+
+                <div class="box info">
+                    <strong>排錯小技巧：</strong>如果 Copilot 沒反應，試試「登出」再「登入」！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: 快捷鍵總表 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⚡ 快捷鍵速查表</h2>
+
+                <table>
+                    <tr>
+                        <th>快捷鍵</th>
+                        <th>功能</th>
+                    </tr>
+                    <tr>
+                        <td><span class="kbd">Tab</span></td>
+                        <td>接受 Copilot 的建議</td>
+                    </tr>
+                    <tr>
+                        <td><span class="kbd">Esc</span></td>
+                        <td>拒絕/關閉建議</td>
+                    </tr>
+                    <tr>
+                        <td><span class="kbd">Alt</span> + <span class="kbd">]</span></td>
+                        <td>查看下一個建議</td>
+                    </tr>
+                    <tr>
+                        <td><span class="kbd">Alt</span> + <span class="kbd">[</span></td>
+                        <td>查看上一個建議</td>
+                    </tr>
+                    <tr>
+                        <td><span class="kbd">Ctrl</span> + <span class="kbd">Enter</span></td>
+                        <td>開啟建議面板（顯示多個建議）</td>
+                    </tr>
+                    <tr>
+                        <td><span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">P</span></td>
+                        <td>開啟命令面板</td>
+                    </tr>
+                    <tr>
+                        <td><span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">X</span></td>
+                        <td>開啟擴充功能面板</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 16: 實作練習 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 實作練習：你的第一個 Copilot 程式</h2>
+
+                <div class="box success">
+                    <strong>練習任務：</strong>用 Copilot 自動生成一個計算質數的函式
+                </div>
+
+                <h3>步驟：</h3>
+                <ol>
+                    <li>新建檔案 <code>practice.py</code></li>
+                    <li>輸入以下註解：</li>
+                </ol>
+
+                <pre># 建立一個函式，判斷一個數字是否為質數
+# 如果是質數回傳 True，否則回傳 False</pre>
+
+                <ol start="3">
+                    <li>按 <span class="kbd">Enter</span> 換行</li>
+                    <li>等待灰色建議出現</li>
+                    <li>按 <span class="kbd">Tab</span> 接受</li>
+                </ol>
+
+                <div class="screenshot-container">
+                    <img src="images/part2/2-9.png" alt="實作練習" class="screenshot">
+                    <p class="screenshot-caption">Copilot 自動生成的質數判斷函式</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 17: 隨堂測驗 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 隨堂測驗</h2>
+
+                <div class="quiz-container">
+                    <h3>問題 1：開啟 VS Code 擴充功能面板的快捷鍵是？</h3>
+                    <div class="quiz-option">A. Ctrl + P</div>
+                    <div class="quiz-option">B. Ctrl + Shift + X</div>
+                    <div class="quiz-option">C. Ctrl + Shift + P</div>
+                    <div class="quiz-option">D. Alt + X</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 2：接受 Copilot 灰色建議的按鍵是？</h3>
+                    <div class="quiz-option">A. Enter</div>
+                    <div class="quiz-option">B. Tab</div>
+                    <div class="quiz-option">C. Space</div>
+                    <div class="quiz-option">D. Ctrl + Enter</div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="quiz-btn" onclick="openPasswordModal(17)">🔑 查看解答</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 18: 測驗解答 -->
+        <div class="slide locked" id="slide-17">
+            <div class="content-card">
+                <h2>✅ 測驗解答</h2>
+
+                <div class="box success">
+                    <h3>問題 1 答案：B</h3>
+                    <p><span class="kbd">Ctrl</span> + <span class="kbd">Shift</span> + <span class="kbd">X</span> 是開啟 VS Code 擴充功能面板的快捷鍵。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 2 答案：B</h3>
+                    <p>按 <span class="kbd">Tab</span> 鍵可以接受 Copilot 顯示的灰色建議程式碼。</p>
+                    <p>（<span class="kbd">Ctrl</span> + <span class="kbd">Enter</span> 是開啟多個建議的面板）</p>
+                </div>
+            </div>
+            <div class="unlock-overlay-container">
+                <button class="unlock-btn" onclick="openPasswordModal(17)">🔓 點擊解鎖解答</button>
+            </div>
+        </div>
+
+        <!-- Slide 19: 常見問題 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>❓ 常見問題排解</h2>
+
+                <table>
+                    <tr>
+                        <th>問題</th>
+                        <th>解決方法</th>
+                    </tr>
+                    <tr>
+                        <td>看不到登入提示</td>
+                        <td>按 <span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">P</span>，輸入「Copilot: 登入」</td>
+                    </tr>
+                    <tr>
+                        <td>授權失敗</td>
+                        <td>檢查網路連線，或嘗試重新登入 GitHub</td>
+                    </tr>
+                    <tr>
+                        <td>沒有建議出現</td>
+                        <td>確認檔案已儲存且副檔名正確（如 .py）</td>
+                    </tr>
+                    <tr>
+                        <td>在聊天框打字沒反應</td>
+                        <td>要在<strong>左側程式碼區</strong>打字才會有補全建議</td>
+                    </tr>
+                    <tr>
+                        <td>Copilot 突然失效</td>
+                        <td>試試「登出」再「登入」</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 20: 重點回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎉 Part 2 重點回顧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>Step 0</h3>
+                        <p>安裝中文語言套件</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Step 1</h3>
+                        <p>開啟擴充功能面板<br><span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">X</span></p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Step 2</h3>
+                        <p>安裝 GitHub Copilot<br>+ Copilot Chat</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>Step 3</h3>
+                        <p>登入 GitHub 並授權</p>
+                    </div>
+                </div>
+
+                <div class="box tip" style="margin-top: 25px; text-align: center;">
+                    <h3>下一單元預告</h3>
+                    <p style="font-size: 20px; margin-bottom: 0;">
+                        <strong>Part 3：帳號授權與方案選擇</strong><br>
+                        詳細說明免費版、Pro 版、學生方案的申請流程！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 導航箭頭 -->
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">❮</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">❯</button>
+
+    <!-- 頁碼指示器 -->
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <!-- 密碼彈窗 -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-box">
+            <h2 style="color: #1e3c72; margin-bottom: 10px;">🔒 解鎖解答</h2>
+            <p style="color: #666;">請輸入密碼以查看答案</p>
+            <input type="password" class="modal-input" id="passwordInput" placeholder="請輸入密碼" autocomplete="off">
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="modal-btn" onclick="verifyPassword()">確認</button>
+                <button class="modal-btn" style="background: #999;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 狀態管理
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let unlockedSlides = new Set();
+        let pendingUnlockIndex = -1;
+        const CORRECT_PASSWORD = "0207";
+
+        function init() {
+            createIndicators();
+            showSlide(0);
+            updateButtons();
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'Enter' && document.getElementById('passwordModal').style.display === 'flex') {
+                verifyPassword();
+            }
+        }
+
+        function createIndicators() {
+            const container = document.getElementById('indicatorContainer');
+            container.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => goToSlide(index);
+                container.appendChild(dot);
+            });
+        }
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            if (slides[index].classList.contains('locked') && !unlockedSlides.has(index)) {
+                // 保持 locked 狀態
+            } else {
+                slides[index].classList.remove('locked');
+            }
+
+            currentSlide = index;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === index);
+            });
+
+            updateButtons();
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // 密碼邏輯
+        function openPasswordModal(targetIndex) {
+            pendingUnlockIndex = targetIndex;
+            const modal = document.getElementById('passwordModal');
+            const input = document.getElementById('passwordInput');
+            modal.style.display = 'flex';
+            input.value = '';
+            input.focus();
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            if (input.value === CORRECT_PASSWORD) {
+                unlockedSlides.add(pendingUnlockIndex);
+
+                if (currentSlide === pendingUnlockIndex) {
+                    slides[currentSlide].classList.remove('locked');
+                } else {
+                    showSlide(pendingUnlockIndex);
+                }
+
+                closeModal();
+            } else {
+                alert("❌ 密碼錯誤！");
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

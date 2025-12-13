@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 1 - 認識 GitHub Copilot</title>
+    <style>
+        /* 基礎設定 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        /* === 導航列 === */
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .nav-buttons { display: flex; gap: 12px; }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* === 導航箭頭 === */
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-arrow:hover {
+            background: rgba(255,255,255,0.5);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .prev-arrow { left: 30px; }
+        .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* === 投影片容器 === */
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            padding-top: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide {
+            position: absolute;
+            top: 60px; left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 20;
+        }
+
+        /* === 內容卡片 === */
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 50px 60px;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 88vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* === 標題樣式 === */
+        h1 {
+            color: #1e3c72;
+            font-size: 52px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #2a5298;
+            font-size: 36px;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #1e3c72;
+            padding-bottom: 12px;
+        }
+        h3 {
+            color: #1e3c72;
+            font-size: 24px;
+            margin: 25px 0 15px 0;
+        }
+        h4 {
+            color: #4facfe;
+            font-size: 18px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p, li {
+            font-size: 20px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 12px;
+        }
+
+        ul, ol {
+            padding-left: 30px;
+            margin: 15px 0;
+        }
+
+        /* === 程式碼區塊 === */
+        code {
+            background: #f0f2f5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d63384;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 25px;
+            border-radius: 12px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-size: 16px;
+            line-height: 1.6;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        pre .comment { color: #5c6370; font-style: italic; }
+        pre .keyword { color: #c678dd; }
+        pre .function { color: #61afef; }
+        pre .string { color: #98c379; }
+        pre .number { color: #d19a66; }
+
+        /* === 提示框 === */
+        .box {
+            padding: 20px 25px;
+            border-radius: 12px;
+            margin: 20px 0;
+            border-left: 6px solid;
+            font-size: 18px;
+        }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .tip { background: #f3e5f5; border-color: #9c27b0; color: #6a1b9a; }
+
+        .highlight {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            color: #004d40;
+        }
+
+        /* === 概念卡片網格 === */
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 25px;
+        }
+        .concept-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 25px;
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+        .concept-card h3 {
+            margin-top: 0;
+            color: #1e3c72;
+        }
+
+        /* === 表格樣式 === */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        th, td {
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        /* === 截圖圖片樣式 === */
+        .screenshot {
+            width: 100%;
+            max-width: 900px;
+            margin: 20px auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 3px solid #e9ecef;
+        }
+
+        .screenshot-container {
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .screenshot-caption {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        .screenshot-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .screenshot-grid img {
+            width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border: 2px solid #e9ecef;
+        }
+
+        /* === 流程圖樣式 === */
+        .flow-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+
+        .flow-step {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            text-align: center;
+            min-width: 180px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .flow-step h4 {
+            color: white;
+            margin-bottom: 8px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
+        .flow-arrow {
+            font-size: 30px;
+            color: #1e3c72;
+        }
+
+        /* === 測驗樣式 === */
+        .quiz-container {
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #1e3c72;
+            border-radius: 20px;
+            padding: 35px;
+            margin: 25px 0;
+        }
+        .quiz-btn {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(30,60,114,0.3);
+        }
+        .quiz-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .quiz-option {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+        /* === 頁碼指示器 === */
+        .indicators {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 4000;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dot:hover {
+            background: rgba(255,255,255,0.7);
+        }
+        .dot.active {
+            background: #4facfe;
+            transform: scale(1.3);
+        }
+
+        /* === 解答鎖定樣式 === */
+        .slide.locked .content-card {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .unlock-overlay-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .slide.locked .unlock-overlay-container {
+            display: flex;
+        }
+
+        .unlock-btn {
+            background: rgba(30, 60, 114, 0.95);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 40px;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+            pointer-events: auto;
+        }
+        .unlock-btn:hover {
+            transform: scale(1.1);
+            background: #2a5298;
+        }
+
+        /* === 密碼彈窗 === */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            outline: none;
+        }
+        .modal-input:focus { border-color: #1e3c72; }
+
+        .modal-btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        /* === 特色標籤 === */
+        .tag-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .tag {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: #004d40;
+            font-size: 16px;
+        }
+
+        /* === 星星評分 === */
+        .stars {
+            color: #ffc107;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導航列 -->
+    <div class="nav-bar">
+        <div class="nav-title">Part 1 - 認識 GitHub Copilot</div>
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-btn">🏠 課程首頁</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">🖥️ 全螢幕</button>
+            <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="nav-btn">📘 FB</a>
+            <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="nav-btn">🎥 YT</a>
+        </div>
+    </div>
+
+    <!-- 投影片內容 -->
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h4>GitHub Copilot 完整教學</h4>
+                <h1>Part 1：認識 GitHub Copilot</h1>
+                <h2 style="border: none; font-weight: normal; font-size: 26px; color: #666; max-width: 800px;">
+                    你的 AI 程式夥伴 - 程式開發的革命性工具
+                </h2>
+                <div class="tag-container">
+                    <span class="tag">AI 程式助手</span>
+                    <span class="tag">自動補全</span>
+                    <span class="tag">提升效率</span>
+                </div>
+                <div class="screenshot-container" style="margin-top: 30px;">
+                    <img src="images/part1/1-1.png" alt="GitHub Copilot 官方頁面" class="screenshot" style="max-width: 700px;">
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 學習目標 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 本單元學習目標</h2>
+                <p>完成這個單元後，你將能夠：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 了解 Copilot</h3>
+                        <p>知道什麼是 GitHub Copilot 以及它能幫你做什麼事情</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 運作原理</h3>
+                        <p>理解 AI 是如何預測並生成程式碼建議的</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 適用場景</h3>
+                        <p>掌握 Copilot 最適合與不適合的使用情境</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 方案比較</h3>
+                        <p>了解免費版與付費版的差異，以及學生免費方案</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 什麼是 GitHub Copilot -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🤖 什麼是 GitHub Copilot？</h2>
+
+                <div class="box info">
+                    <strong>定義：</strong>GitHub Copilot 是由 <span class="highlight">GitHub</span> 與 <span class="highlight">OpenAI</span> 聯合開發的 AI 程式碼助手。
+                </div>
+
+                <h3>核心能力</h3>
+                <ul>
+                    <li>根據你正在撰寫的程式碼，<strong>即時預測</strong>並建議接下來的程式碼</li>
+                    <li>理解<strong>註解</strong>和<strong>函式名稱</strong>，自動產生完整實作</li>
+                    <li>支援<strong>多種程式語言</strong>：Python、JavaScript、TypeScript、Go、Ruby、C++ 等</li>
+                </ul>
+
+                <div class="box tip">
+                    <strong>一句話說明：</strong><br>
+                    「就像有一個 24 小時待命的資深工程師坐在你旁邊，隨時幫你寫程式！」
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: 實際效果展示 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>✨ 實際效果展示</h2>
+                <p>只要輸入簡單的中文註解，Copilot 就會自動建議完整的程式碼：</p>
+
+                <div class="screenshot-container">
+                    <img src="images/part1/1-2.png" alt="Copilot 自動補全示意" class="screenshot">
+                    <p class="screenshot-caption">輸入中文註解後，Copilot 自動顯示灰色建議程式碼</p>
+                </div>
+
+                <div class="box success">
+                    <strong>重點：</strong>灰色的程式碼是 Copilot 的建議，按下 <code>Tab</code> 鍵即可接受！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 運作原理 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>⚙️ Copilot 的運作原理</h2>
+
+                <div class="flow-diagram">
+                    <div class="flow-step">
+                        <h4>Step 1</h4>
+                        <p>你輸入程式碼<br>或中文註解</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <h4>Step 2</h4>
+                        <p>AI 分析<br>程式碼上下文</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-step">
+                        <h4>Step 3</h4>
+                        <p>即時生成<br>程式碼建議</p>
+                    </div>
+                </div>
+
+                <h3>背後技術</h3>
+                <ul>
+                    <li>基於 <strong>OpenAI Codex</strong> 模型（GPT 家族）</li>
+                    <li>訓練資料：數十億行公開程式碼</li>
+                    <li>能理解自然語言（<span class="highlight">包含中文！</span>）</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 6: 用中文寫程式 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🇹🇼 用中文寫程式！</h2>
+                <p>這是 Copilot 最神奇的功能之一：只要打中文註解，就能自動產生程式碼！</p>
+
+                <div class="screenshot-container">
+                    <img src="images/part1/1-3.png" alt="中文註解生成程式碼" class="screenshot">
+                    <p class="screenshot-caption">輸入中文需求描述，Copilot 自動生成完整函式</p>
+                </div>
+
+                <div class="box info">
+                    <strong>範例註解：</strong><br>
+                    <code># 建立一個函式，輸入學生的國文、英文、數學成績</code><br>
+                    <code># 回傳平均分數和等第（90以上A，80以上B，70以上C，60以上D，其他F）</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: Copilot 能幫你做什麼 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💪 Copilot 能幫你做什麼？</h2>
+
+                <table>
+                    <tr>
+                        <th>功能</th>
+                        <th>說明</th>
+                        <th>實用度</th>
+                    </tr>
+                    <tr>
+                        <td><strong>自動補全</strong></td>
+                        <td>輸入幾個字，自動完成整段程式碼</td>
+                        <td><span class="stars">★★★★★</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>註解轉程式</strong></td>
+                        <td>寫中文註解，自動產生對應程式</td>
+                        <td><span class="stars">★★★★★</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>多種建議</strong></td>
+                        <td>按快捷鍵查看多種實作方案</td>
+                        <td><span class="stars">★★★★☆</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>生成測試</strong></td>
+                        <td>自動產生單元測試程式碼</td>
+                        <td><span class="stars">★★★★☆</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>對話問答</strong></td>
+                        <td>用對話方式詢問程式碼的意思</td>
+                        <td><span class="stars">★★★★☆</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Debug 協助</strong></td>
+                        <td>幫你找出程式錯誤並建議修正</td>
+                        <td><span class="stars">★★★★☆</span></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 8: 適用場景 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 什麼時候該用 Copilot？</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card" style="border-left: 5px solid #28a745;">
+                        <h3>✅ 非常適合</h3>
+                        <ul>
+                            <li>撰寫重複性高的程式碼（CRUD）</li>
+                            <li>快速建立函式骨架</li>
+                            <li>生成測試案例</li>
+                            <li>學習新的程式語言或框架</li>
+                            <li>撰寫常見演算法</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card" style="border-left: 5px solid #ffc107;">
+                        <h3>⚠️ 需要謹慎</h3>
+                        <ul>
+                            <li>涉及商業機密的程式碼</li>
+                            <li>需要高度創意的架構設計</li>
+                            <li>安全性關鍵的程式碼</li>
+                            <li>（需仔細檢查建議內容）</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="box warning" style="margin-top: 25px;">
+                    <strong>重要提醒：</strong>Copilot 是「助手」不是「取代品」！<br>
+                    你還是要懂程式邏輯，並且<strong>一定要檢查</strong>它給的建議是否正確！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 方案與價格 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>💰 方案與價格比較</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part1/1-4.png" alt="Copilot 價格方案" class="screenshot" style="max-width: 800px;">
+                </div>
+
+                <table>
+                    <tr>
+                        <th>方案</th>
+                        <th>價格</th>
+                        <th>功能</th>
+                        <th>適合對象</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Copilot Free</strong></td>
+                        <td>免費</td>
+                        <td>每月 2000 次補全、50 次對話</td>
+                        <td>初學者、輕度使用</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Copilot Pro</strong></td>
+                        <td>$10/月</td>
+                        <td>無限補全、無限對話、進階功能</td>
+                        <td>專業開發者</td>
+                    </tr>
+                    <tr>
+                        <td><strong>學生/教師</strong></td>
+                        <td style="color: #28a745; font-weight: bold;">免費</td>
+                        <td>等同 Pro 方案</td>
+                        <td>有 .edu 信箱者</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Slide 10: 學生免費申請 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎓 學生/教師免費申請方式</h2>
+
+                <div class="screenshot-container">
+                    <img src="images/part1/1-5.png" alt="GitHub Education" class="screenshot" style="max-width: 750px;">
+                </div>
+
+                <h3>申請步驟</h3>
+                <ol>
+                    <li>前往 <strong>GitHub Education</strong>：<code>https://education.github.com</code></li>
+                    <li>點擊「<strong>Get benefits</strong>」按鈕</li>
+                    <li>使用學校 email（如 xxx@xxx.edu.tw）或上傳在學證明</li>
+                    <li>等待審核通過（通常 1-7 天）</li>
+                    <li>完成後即可<span class="highlight">免費使用 Copilot Pro</span>！</li>
+                </ol>
+
+                <div class="box success">
+                    <strong>超划算！</strong>學生方案價值每月 $10 美金，一年可省下 $120 美金（約台幣 3,600 元）！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 隨堂測驗 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 隨堂測驗</h2>
+
+                <div class="quiz-container">
+                    <h3>問題 1：GitHub Copilot 主要的功能是什麼？</h3>
+                    <div class="quiz-option">A. 管理 Git 版本控制</div>
+                    <div class="quiz-option">B. 即時預測並建議程式碼</div>
+                    <div class="quiz-option">C. 架設網站伺服器</div>
+                    <div class="quiz-option">D. 設計使用者介面</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 2：哪種使用者可以免費使用 Copilot Pro？</h3>
+                    <div class="quiz-option">A. 所有人</div>
+                    <div class="quiz-option">B. 只有企業用戶</div>
+                    <div class="quiz-option">C. 學生和教師</div>
+                    <div class="quiz-option">D. 只有付費用戶</div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="quiz-btn" onclick="openPasswordModal(11)">🔑 查看解答</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 測驗解答 -->
+        <div class="slide locked" id="slide-11">
+            <div class="content-card">
+                <h2>✅ 測驗解答</h2>
+
+                <div class="box success">
+                    <h3>問題 1 答案：B</h3>
+                    <p>GitHub Copilot 的核心功能就是根據程式碼上下文，<strong>即時預測並建議</strong>接下來的程式碼。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 2 答案：C</h3>
+                    <p><strong>學生和教師</strong>可以透過 GitHub Education 申請，免費使用等同 Pro 方案的 Copilot 功能。</p>
+                </div>
+
+                <div class="box info" style="margin-top: 20px;">
+                    <strong>答對了嗎？</strong>如果有不確定的地方，可以回去複習前面的投影片！
+                </div>
+            </div>
+            <div class="unlock-overlay-container">
+                <button class="unlock-btn" onclick="openPasswordModal(11)">🔓 點擊解鎖解答</button>
+            </div>
+        </div>
+
+        <!-- Slide 13: 重點回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎉 Part 1 重點回顧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>什麼是 Copilot</h3>
+                        <p>GitHub + OpenAI 開發的 AI 程式碼助手</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>核心功能</h3>
+                        <p>自動補全、註解轉程式、對話問答</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>運作方式</h3>
+                        <p>分析上下文 → AI 預測 → 生成建議</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>免費方案</h3>
+                        <p>學生/教師可申請免費 Pro 版</p>
+                    </div>
+                </div>
+
+                <div class="box tip" style="margin-top: 30px; text-align: center;">
+                    <h3>下一單元預告</h3>
+                    <p style="font-size: 22px; margin-bottom: 0;">
+                        <strong>Part 2：安裝與設定 - VS Code 環境準備</strong><br>
+                        我們將手把手教你安裝 Copilot 擴充套件！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 導航箭頭 -->
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">❮</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">❯</button>
+
+    <!-- 頁碼指示器 -->
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <!-- 密碼彈窗 -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-box">
+            <h2 style="color: #1e3c72; margin-bottom: 10px;">🔒 解鎖解答</h2>
+            <p style="color: #666;">請輸入密碼以查看答案</p>
+            <input type="password" class="modal-input" id="passwordInput" placeholder="請輸入密碼" autocomplete="off">
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="modal-btn" onclick="verifyPassword()">確認</button>
+                <button class="modal-btn" style="background: #999;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 狀態管理
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let unlockedSlides = new Set();
+        let pendingUnlockIndex = -1;
+        const CORRECT_PASSWORD = "0207";
+
+        function init() {
+            createIndicators();
+            showSlide(0);
+            updateButtons();
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'Enter' && document.getElementById('passwordModal').style.display === 'flex') {
+                verifyPassword();
+            }
+        }
+
+        function createIndicators() {
+            const container = document.getElementById('indicatorContainer');
+            container.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => goToSlide(index);
+                container.appendChild(dot);
+            });
+        }
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            if (slides[index].classList.contains('locked') && !unlockedSlides.has(index)) {
+                // 保持 locked 狀態
+            } else {
+                slides[index].classList.remove('locked');
+            }
+
+            currentSlide = index;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === index);
+            });
+
+            updateButtons();
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // 密碼邏輯
+        function openPasswordModal(targetIndex) {
+            pendingUnlockIndex = targetIndex;
+            const modal = document.getElementById('passwordModal');
+            const input = document.getElementById('passwordInput');
+            modal.style.display = 'flex';
+            input.value = '';
+            input.focus();
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            if (input.value === CORRECT_PASSWORD) {
+                unlockedSlides.add(pendingUnlockIndex);
+
+                if (currentSlide === pendingUnlockIndex) {
+                    slides[currentSlide].classList.remove('locked');
+                } else {
+                    showSlide(pendingUnlockIndex);
+                }
+
+                closeModal();
+            } else {
+                alert("❌ 密碼錯誤！");
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

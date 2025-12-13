@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Part 16 - 進階技巧：多檔案協作</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft JhengHei', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: #333;
+        }
+
+        .nav-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            z-index: 10000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .nav-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .nav-buttons { display: flex; gap: 12px; }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .nav-arrow {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.25);
+            color: white;
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 9000;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-arrow:hover {
+            background: rgba(255,255,255,0.5);
+            transform: translateY(-50%) scale(1.1);
+        }
+        .prev-arrow { left: 30px; }
+        .next-arrow { right: 30px; }
+        .nav-arrow:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .slide-container {
+            width: 100%;
+            height: 100vh;
+            padding-top: 60px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .slide {
+            position: absolute;
+            top: 60px; left: 0;
+            width: 100%;
+            height: calc(100vh - 60px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 10;
+        }
+
+        .slide.active {
+            display: flex;
+            opacity: 1;
+            z-index: 20;
+        }
+
+        .content-card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+            padding: 45px 55px;
+            max-width: 1400px;
+            width: 95%;
+            max-height: 88vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        h1 {
+            color: #1e3c72;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #2a5298;
+            font-size: 34px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #1e3c72;
+            padding-bottom: 12px;
+        }
+        h3 {
+            color: #1e3c72;
+            font-size: 22px;
+            margin: 20px 0 12px 0;
+        }
+        h4 {
+            color: #4facfe;
+            font-size: 16px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        p, li {
+            font-size: 18px;
+            line-height: 1.8;
+            color: #444;
+            margin-bottom: 10px;
+        }
+
+        ul, ol {
+            padding-left: 25px;
+            margin: 12px 0;
+        }
+
+        code {
+            background: #f0f2f5;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            color: #d63384;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 12px;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 15px;
+            line-height: 1.6;
+            margin: 15px 0;
+        }
+
+        .box {
+            padding: 18px 22px;
+            border-radius: 12px;
+            margin: 18px 0;
+            border-left: 6px solid;
+            font-size: 17px;
+        }
+        .info { background: #e3f2fd; border-color: #2196f3; color: #0d47a1; }
+        .warning { background: #fff3cd; border-color: #ffc107; color: #856404; }
+        .success { background: #d4edda; border-color: #28a745; color: #155724; }
+        .tip { background: #f3e5f5; border-color: #9c27b0; color: #6a1b9a; }
+        .danger { background: #f8d7da; border-color: #dc3545; color: #721c24; }
+
+        .concept-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 20px;
+        }
+        .concept-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 22px;
+            border-radius: 15px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .concept-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #4facfe;
+        }
+        .concept-card h3 {
+            margin-top: 0;
+            color: #1e3c72;
+        }
+
+        .screenshot {
+            width: 100%;
+            max-width: 850px;
+            margin: 15px auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border: 3px solid #e9ecef;
+        }
+
+        .screenshot-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .screenshot-caption {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .method-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+
+        .method-card h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .method-card code {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 16px;
+            padding: 8px 15px;
+            display: block;
+            margin-top: 10px;
+        }
+
+        /* 指令卡片 - 更鮮明的顏色 */
+        .command-card {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            color: white;
+            padding: 20px 25px;
+            border-radius: 15px;
+            margin: 15px 0;
+        }
+
+        .command-card h3 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+
+        .command-card code {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 18px;
+            padding: 10px 18px;
+            display: block;
+            margin-top: 10px;
+            border-radius: 8px;
+        }
+
+        /* 功能編號 */
+        .feature-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            width: 40px;
+            height: 40px;
+            line-height: 40px;
+            text-align: center;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 20px;
+            margin-right: 15px;
+        }
+
+        .quiz-container {
+            background: linear-gradient(145deg, #ffffff, #f0f4f8);
+            border: 2px solid #1e3c72;
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px 0;
+        }
+        .quiz-btn {
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            color: white;
+            border: none;
+            padding: 12px 35px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(30,60,114,0.3);
+        }
+        .quiz-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .quiz-option {
+            background: #f8f9fa;
+            padding: 12px 18px;
+            margin: 8px 0;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quiz-option:hover {
+            border-color: #4facfe;
+            background: #e3f2fd;
+        }
+
+        .indicators {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 4000;
+            padding: 10px 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 30px;
+            backdrop-filter: blur(5px);
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.4);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .dot:hover {
+            background: rgba(255,255,255,0.7);
+        }
+        .dot.active {
+            background: #4facfe;
+            transform: scale(1.3);
+        }
+
+        .slide.locked .content-card {
+            filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .unlock-overlay-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .slide.locked .unlock-overlay-container {
+            display: flex;
+        }
+
+        .unlock-btn {
+            background: rgba(30, 60, 114, 0.95);
+            color: white;
+            border: 2px solid white;
+            padding: 15px 40px;
+            font-size: 22px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            transition: transform 0.2s;
+            pointer-events: auto;
+        }
+        .unlock-btn:hover {
+            transform: scale(1.1);
+            background: #2a5298;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-box {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            margin: 20px 0;
+            text-align: center;
+            outline: none;
+        }
+        .modal-input:focus { border-color: #1e3c72; }
+
+        .modal-btn {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .tag-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 25px;
+        }
+
+        .tag {
+            background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            color: #004d40;
+            font-size: 15px;
+        }
+
+        @media (max-width: 900px) {
+            .concept-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 導航列 -->
+    <div class="nav-bar">
+        <div class="nav-title">Part 16 - 進階技巧：多檔案協作</div>
+        <div class="nav-buttons">
+            <a href="index.html" class="nav-btn">🏠 課程首頁</a>
+            <button class="nav-btn" onclick="toggleFullscreen()">🖥️ 全螢幕</button>
+            <a href="https://www.facebook.com/?locale=zh_TW" target="_blank" class="nav-btn">📘 FB</a>
+            <a href="https://www.youtube.com/@Liang-yt02" target="_blank" class="nav-btn">🎥 YT</a>
+        </div>
+    </div>
+
+    <!-- 投影片內容 -->
+    <div class="slide-container">
+
+        <!-- Slide 1: 封面 -->
+        <div class="slide active">
+            <div class="content-card" style="text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+                <h4>GitHub Copilot 完整教學</h4>
+                <h1>Part 16：進階技巧 - 多檔案協作</h1>
+                <h2 style="border: none; font-weight: normal; font-size: 24px; color: #666; max-width: 800px;">
+                    用 Copilot 處理真實專案的跨檔案開發
+                </h2>
+                <div class="tag-container">
+                    <span class="tag">@workspace</span>
+                    <span class="tag">#file</span>
+                    <span class="tag">跨檔案協作</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: 學習目標 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎯 本單元學習目標</h2>
+                <p>完成這個單元後，你將能夠：</p>
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>1. 使用 @workspace</h3>
+                        <p>讓 Copilot 理解整個專案的結構和內容</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>2. 使用 #file 引用</h3>
+                        <p>指定 Copilot 參考特定檔案的內容</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>3. 跨檔案分析</h3>
+                        <p>分析多個檔案之間的關係與互動</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>4. 專案級重構</h3>
+                        <p>進行涉及多個檔案的重構和整合</p>
+                    </div>
+                </div>
+
+                <div class="box tip">
+                    <strong>核心觀念：</strong>真實專案不只一個檔案！學會多檔案協作，才能發揮 Copilot 的真正威力！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: 為什麼需要多檔案協作？ -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🤔 為什麼需要多檔案協作？</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>真實專案的樣貌</h3>
+                        <ul>
+                            <li>通常有 10+ 個檔案</li>
+                            <li>檔案之間互相引用</li>
+                            <li>模組化設計</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card">
+                        <h3>常見的需求</h3>
+                        <ul>
+                            <li>理解專案整體架構</li>
+                            <li>追蹤函式的呼叫關係</li>
+                            <li>進行跨檔案的修改</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="box info">
+                    <strong>問題：</strong>一般 Chat 只能看到你給它的程式碼片段，無法理解整個專案
+                </div>
+
+                <div class="box success">
+                    <strong>解決方案：</strong>使用 <code>@workspace</code> 和 <code>#file</code> 讓 Copilot 看到更多！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: @workspace 介紹 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">1</span> @workspace 介紹</h2>
+
+                <div class="command-card">
+                    <h3>什麼是 @workspace？</h3>
+                    <code>@workspace [你的問題]</code>
+                    <p style="margin-top: 15px;">讓 Copilot Chat 分析整個專案資料夾的內容</p>
+                </div>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>適用場景</h3>
+                        <ul>
+                            <li>詢問專案的整體功能</li>
+                            <li>了解專案架構</li>
+                            <li>尋找特定功能在哪裡</li>
+                            <li>跨檔案的重構建議</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card">
+                        <h3>使用提示</h3>
+                        <ul>
+                            <li>確保已開啟專案資料夾</li>
+                            <li>專案檔案越完整越好</li>
+                            <li>可搭配具體問題使用</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="box tip">
+                    <strong>記住：</strong><code>@workspace</code> 是「專案層級」的分析，不是只看單一檔案！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 5: 截圖 16-1 @workspace 基本用法 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">1</span> @workspace 基本用法</h2>
+
+                <div class="method-card">
+                    <h3>提問範例</h3>
+                    <code>@workspace 這個專案的主要功能是什麼？</code>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part16/16-1.png" alt="@workspace 基本用法" class="screenshot">
+                    <p class="screenshot-caption">Copilot 會分析整個專案，回答專案層級的問題</p>
+                </div>
+
+                <div class="box success">
+                    <strong>效果：</strong>Copilot 會瀏覽專案中的多個檔案，給出整體性的回答
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 6: #file 引用特定檔案 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">2</span> #file 引用特定檔案</h2>
+
+                <div class="command-card">
+                    <h3>什麼是 #file？</h3>
+                    <code>#file:檔案名稱 [你的問題]</code>
+                    <p style="margin-top: 15px;">指定 Copilot 參考某個特定檔案的內容</p>
+                </div>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>適用場景</h3>
+                        <ul>
+                            <li>針對特定檔案提問</li>
+                            <li>請 Copilot 基於某檔案產生程式碼</li>
+                            <li>比較或分析特定檔案</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card">
+                        <h3>語法說明</h3>
+                        <ul>
+                            <li><code>#file:main.py</code></li>
+                            <li><code>#file:utils.py</code></li>
+                            <li><code>#file:config.json</code></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="box info">
+                    <strong>與 @workspace 的差異：</strong>#file 是「精準參照」，@workspace 是「全局搜尋」
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 7: 截圖 16-2 #file 引用檔案 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">2</span> #file 引用特定檔案</h2>
+
+                <div class="method-card">
+                    <h3>提問範例</h3>
+                    <code>#file:main.py 請解釋這個檔案的主要邏輯</code>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part16/16-2.png" alt="#file 引用特定檔案" class="screenshot">
+                    <p class="screenshot-caption">Copilot 會針對指定檔案進行分析</p>
+                </div>
+
+                <div class="box tip">
+                    <strong>優點：</strong>不需要手動複製貼上程式碼，直接引用檔案即可！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 8: 多檔案同時引用 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">3</span> 多檔案同時引用</h2>
+
+                <div class="command-card">
+                    <h3>語法</h3>
+                    <code>#file:檔案A #file:檔案B [你的問題]</code>
+                    <p style="margin-top: 15px;">同時引用多個檔案，讓 Copilot 分析它們之間的關係</p>
+                </div>
+
+                <div class="box info">
+                    <strong>常見用途：</strong>
+                    <ul style="margin-top: 10px; margin-bottom: 0;">
+                        <li>分析兩個模組如何互動</li>
+                        <li>找出檔案之間的依賴關係</li>
+                        <li>比較兩個檔案的實作差異</li>
+                    </ul>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part16/16-3.png" alt="多檔案同時引用" class="screenshot">
+                    <p class="screenshot-caption">同時引用多個檔案，分析檔案之間的互動</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 9: 截圖 16-3 多檔案引用範例 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">3</span> 多檔案引用範例</h2>
+
+                <div class="method-card">
+                    <h3>提問範例</h3>
+                    <code>#file:main.py #file:utils.py 這兩個檔案之間如何互動？</code>
+                </div>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>Copilot 會回答</h3>
+                        <ul>
+                            <li>哪些函式被呼叫</li>
+                            <li>資料如何傳遞</li>
+                            <li>模組之間的依賴關係</li>
+                        </ul>
+                    </div>
+                    <div class="concept-card">
+                        <h3>進階應用</h3>
+                        <ul>
+                            <li>追蹤 bug 來源</li>
+                            <li>理解複雜的呼叫鏈</li>
+                            <li>規劃重構策略</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="box success">
+                    <strong>提示：</strong>可以引用 2-3 個相關檔案，讓 Copilot 了解它們的關係！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 10: 跨檔案重構 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">4</span> 跨檔案重構</h2>
+
+                <div class="method-card">
+                    <h3>提問範例</h3>
+                    <code>@workspace 我想把重複的程式碼抽取成共用函式，放到 utils.py，請給我建議</code>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part16/16-4.png" alt="跨檔案重構請求" class="screenshot">
+                    <p class="screenshot-caption">Copilot 會分析專案並提供涉及多個檔案的修改建議</p>
+                </div>
+
+                <div class="box tip">
+                    <strong>重構策略：</strong>Copilot 會告訴你哪些地方有重複、如何抽取、以及修改後如何引用
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 11: 專案結構分析 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">5</span> 專案結構分析</h2>
+
+                <div class="method-card">
+                    <h3>提問範例</h3>
+                    <code>@workspace 請分析這個專案的檔案結構，並說明各檔案的用途</code>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part16/16-5.png" alt="專案結構分析" class="screenshot">
+                    <p class="screenshot-caption">Copilot 會列出專案中的檔案並說明各自的功能</p>
+                </div>
+
+                <div class="box info">
+                    <strong>應用場景：</strong>接手新專案時，快速了解專案架構！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 12: 新增模組整合 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2><span class="feature-number">6</span> 新增模組整合</h2>
+
+                <div class="method-card">
+                    <h3>提問範例</h3>
+                    <code>@workspace 我想新增一個 logger.py 模組來處理日誌，請幫我設計並說明如何整合到現有專案</code>
+                </div>
+
+                <div class="screenshot-container">
+                    <img src="images/part16/16-6.png" alt="新增模組整合" class="screenshot">
+                    <p class="screenshot-caption">Copilot 會提供新模組的程式碼和整合方式</p>
+                </div>
+
+                <div class="box success">
+                    <strong>效果：</strong>Copilot 會根據現有專案的風格，設計出符合的新模組！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 13: 指令總整理 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📋 多檔案協作指令總整理</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>@workspace</h3>
+                        <p>分析整個專案<br>
+                        <code>@workspace 這個專案...</code></p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>#file:檔名</h3>
+                        <p>引用特定檔案<br>
+                        <code>#file:main.py 請解釋...</code></p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>多檔案引用</h3>
+                        <p>分析檔案關係<br>
+                        <code>#file:A #file:B 如何互動？</code></p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>@selection</h3>
+                        <p>引用選取的程式碼<br>
+                        先選取，再輸入問題</p>
+                    </div>
+                </div>
+
+                <div class="box tip" style="margin-top: 20px;">
+                    <strong>組合技：</strong>可以混合使用！例如 <code>@workspace #file:main.py 這個函式在專案中被哪些地方呼叫？</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 14: 實作練習 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🏋️ 實作練習</h2>
+
+                <div class="box info">
+                    <strong>練習目標：</strong>熟悉多檔案協作的各種指令
+                </div>
+
+                <h3>練習步驟</h3>
+                <ol>
+                    <li>開啟一個有多個 .py 檔案的專案</li>
+                    <li>使用 <code>@workspace</code> 詢問專案的主要功能</li>
+                    <li>使用 <code>#file:檔名</code> 詢問某個檔案的邏輯</li>
+                    <li>使用多檔案引用，分析兩個檔案之間的關係</li>
+                    <li>請 Copilot 建議如何新增一個模組並整合</li>
+                </ol>
+
+                <div class="box tip">
+                    <strong>進階挑戰：</strong>找出專案中重複的程式碼，請 Copilot 建議如何重構成共用函式！
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 15: 隨堂測驗 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>📝 隨堂測驗</h2>
+
+                <div class="quiz-container">
+                    <h3>問題 1：想讓 Copilot 分析「整個專案」，應該用什麼指令？</h3>
+                    <div class="quiz-option">A. #file:all</div>
+                    <div class="quiz-option">B. @workspace</div>
+                    <div class="quiz-option">C. @project</div>
+                    <div class="quiz-option">D. #folder</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 2：想讓 Copilot 參考「特定檔案」，應該用什麼語法？</h3>
+                    <div class="quiz-option">A. @file:main.py</div>
+                    <div class="quiz-option">B. #main.py</div>
+                    <div class="quiz-option">C. #file:main.py</div>
+                    <div class="quiz-option">D. file:main.py</div>
+                </div>
+
+                <div class="quiz-container">
+                    <h3>問題 3：想同時引用多個檔案，正確的寫法是？</h3>
+                    <div class="quiz-option">A. #file:[main.py, utils.py]</div>
+                    <div class="quiz-option">B. #files:main.py,utils.py</div>
+                    <div class="quiz-option">C. #file:main.py #file:utils.py</div>
+                    <div class="quiz-option">D. @files main.py utils.py</div>
+                </div>
+
+                <div style="text-align: center;">
+                    <button class="quiz-btn" onclick="openPasswordModal(15)">🔑 查看解答</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 16: 測驗解答 -->
+        <div class="slide locked" id="slide-15">
+            <div class="content-card">
+                <h2>✅ 測驗解答</h2>
+
+                <div class="box success">
+                    <h3>問題 1 答案：B</h3>
+                    <p><code>@workspace</code> 是讓 Copilot 分析整個專案的指令。它會瀏覽專案資料夾中的檔案，理解整體架構。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 2 答案：C</h3>
+                    <p>引用特定檔案的正確語法是 <code>#file:檔案名稱</code>，例如 <code>#file:main.py</code>。</p>
+                </div>
+
+                <div class="box success">
+                    <h3>問題 3 答案：C</h3>
+                    <p>同時引用多個檔案時，每個檔案都要分別使用 <code>#file:</code>，例如 <code>#file:main.py #file:utils.py</code>。</p>
+                </div>
+            </div>
+            <div class="unlock-overlay-container">
+                <button class="unlock-btn" onclick="openPasswordModal(15)">🔓 點擊解鎖解答</button>
+            </div>
+        </div>
+
+        <!-- Slide 17: 重點回顧 -->
+        <div class="slide">
+            <div class="content-card">
+                <h2>🎉 Part 16 重點回顧</h2>
+
+                <div class="concept-grid">
+                    <div class="concept-card">
+                        <h3>@workspace</h3>
+                        <p>讓 Copilot 理解<br>整個專案的內容</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>#file:檔名</h3>
+                        <p>精準引用<br>特定檔案的內容</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>多檔案分析</h3>
+                        <p>理解檔案之間<br>的關係與互動</p>
+                    </div>
+                    <div class="concept-card">
+                        <h3>專案級操作</h3>
+                        <p>跨檔案重構<br>新增模組整合</p>
+                    </div>
+                </div>
+
+                <div class="box tip" style="margin-top: 25px; text-align: center;">
+                    <h3>核心觀念</h3>
+                    <p style="font-size: 20px; margin-bottom: 0;">
+                        「真實專案等級的 Copilot 使用方式」
+                    </p>
+                </div>
+
+                <div class="box info" style="margin-top: 15px; text-align: center;">
+                    <h3>下一單元預告</h3>
+                    <p style="font-size: 18px; margin-bottom: 0;">
+                        <strong>Part 17：進階技巧 - 客製化設定</strong><br>
+                        調整 Copilot 的行為，符合你的開發風格！
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 導航箭頭 -->
+    <button class="nav-arrow prev-arrow" id="prevBtn" onclick="changeSlide(-1)">❮</button>
+    <button class="nav-arrow next-arrow" id="nextBtn" onclick="changeSlide(1)">❯</button>
+
+    <!-- 頁碼指示器 -->
+    <div class="indicators" id="indicatorContainer"></div>
+
+    <!-- 密碼彈窗 -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal-box">
+            <h2 style="color: #1e3c72; margin-bottom: 10px;">🔒 解鎖解答</h2>
+            <p style="color: #666;">請輸入密碼以查看答案</p>
+            <input type="password" class="modal-input" id="passwordInput" placeholder="請輸入密碼" autocomplete="off">
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button class="modal-btn" onclick="verifyPassword()">確認</button>
+                <button class="modal-btn" style="background: #999;" onclick="closeModal()">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        let unlockedSlides = new Set();
+        let pendingUnlockIndex = -1;
+        const CORRECT_PASSWORD = "0207";
+
+        function init() {
+            createIndicators();
+            showSlide(0);
+            updateButtons();
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(e) {
+            if (e.key === 'ArrowLeft') changeSlide(-1);
+            if (e.key === 'ArrowRight') changeSlide(1);
+            if (e.key === 'Enter' && document.getElementById('passwordModal').style.display === 'flex') {
+                verifyPassword();
+            }
+        }
+
+        function createIndicators() {
+            const container = document.getElementById('indicatorContainer');
+            container.innerHTML = '';
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.onclick = () => goToSlide(index);
+                container.appendChild(dot);
+            });
+        }
+
+        function showSlide(index) {
+            if (index < 0) index = 0;
+            if (index >= totalSlides) index = totalSlides - 1;
+
+            slides.forEach(slide => slide.classList.remove('active'));
+            slides[index].classList.add('active');
+
+            if (slides[index].classList.contains('locked') && !unlockedSlides.has(index)) {
+                // 保持 locked 狀態
+            } else {
+                slides[index].classList.remove('locked');
+            }
+
+            currentSlide = index;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === index);
+            });
+
+            updateButtons();
+        }
+
+        function changeSlide(direction) {
+            showSlide(currentSlide + direction);
+        }
+
+        function goToSlide(index) {
+            showSlide(index);
+        }
+
+        function updateButtons() {
+            document.getElementById('prevBtn').disabled = currentSlide === 0;
+            document.getElementById('nextBtn').disabled = currentSlide === totalSlides - 1;
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        function openPasswordModal(targetIndex) {
+            pendingUnlockIndex = targetIndex;
+            const modal = document.getElementById('passwordModal');
+            const input = document.getElementById('passwordInput');
+            modal.style.display = 'flex';
+            input.value = '';
+            input.focus();
+        }
+
+        function closeModal() {
+            document.getElementById('passwordModal').style.display = 'none';
+        }
+
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            if (input.value === CORRECT_PASSWORD) {
+                unlockedSlides.add(pendingUnlockIndex);
+
+                if (currentSlide === pendingUnlockIndex) {
+                    slides[currentSlide].classList.remove('locked');
+                } else {
+                    showSlide(pendingUnlockIndex);
+                }
+
+                closeModal();
+            } else {
+                alert("❌ 密碼錯誤！");
+                input.value = '';
+                input.focus();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
