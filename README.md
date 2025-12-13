@@ -1,6 +1,6 @@
 # GitHub Copilot 教學課程
 
-完整 20 單元 GitHub Copilot 教學簡報，適合教師研習與自學使用。
+完整 20 單元 GitHub Copilot 教學簡報
 
 ## 📺 觀看簡報
 
